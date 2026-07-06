@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-06T16:05:01.484Z",
+  "current": {
+    "playerHash": "4918c89a",
+    "playerUrl": "https://www.youtube.com/s/player/4918c89a/player_es6.vflset/en_US/base.js",
+    "discoveredAt": "2026-07-06T16:05:01.484Z"
+  },
+  "players": [
+    {
+      "playerHash": "4918c89a",
+      "playerUrl": "https://www.youtube.com/s/player/4918c89a/player_es6.vflset/en_US/base.js",
+      "sha256": "e2ed0d446aa67c9a024ea37a9b6c1b9c14033b4c7e29e7948891f0fdc7399062",
+      "firstSeenAt": "2026-07-06T16:05:01.484Z",
+      "status": "validated",
+      "validator": "yt-dlp-ejs",
+      "configPath": "registry/players/4918c89a.json",
+      "releaseTag": "player-4918c89a"
+    }
+  ]
+}
