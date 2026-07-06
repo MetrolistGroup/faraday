@@ -88,6 +88,7 @@ Deno.test("player config shape matches immutable release URL model", () => {
     sha256: entry.sha256,
     nTransform: {
       type: "yt-dlp-ejs-preprocessed-player",
+      preprocessedPlayerEncoding: "base64",
       preprocessedPlayer: "preprocessed-player-js",
     },
   };
@@ -95,5 +96,6 @@ Deno.test("player config shape matches immutable release URL model", () => {
   assertEquals(entry.configPath, `registry/players/${hash}.json`);
   assertEquals(entry.releaseTag, `player-${hash}`);
   assertEquals(config.nTransform.type, "yt-dlp-ejs-preprocessed-player");
+  assertEquals(config.nTransform.preprocessedPlayerEncoding, "base64");
   assertEquals(registry.current?.playerHash, config.playerHash);
 });

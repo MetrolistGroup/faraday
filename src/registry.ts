@@ -30,6 +30,7 @@ export type PlayerConfig = {
   sha256: string;
   nTransform: {
     type: "yt-dlp-ejs-preprocessed-player";
+    preprocessedPlayerEncoding: "base64";
     preprocessedPlayer: string;
   };
 };

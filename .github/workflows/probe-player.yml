@@ -67,9 +67,10 @@ jobs:
           fi
           if gh release view "${TAG}" >/dev/null 2>&1; then
             echo "Release ${TAG} already exists."
+            gh release upload "${TAG}" "${CONFIG_PATH}#player-${PLAYER_HASH}.json" --clobber
           else
             gh release create "${TAG}" "${CONFIG_PATH}#player-${PLAYER_HASH}.json" \
               --verify-tag \
               --title "YouTube player ${PLAYER_HASH}" \
-              --notes "Validated yt-dlp EJS n-transform config for YouTube player ${PLAYER_HASH}."
+              --notes "Validated base64-encoded yt-dlp EJS preprocessed-player config for YouTube player ${PLAYER_HASH}."
           fi

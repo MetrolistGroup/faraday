@@ -1,4 +1,5 @@
 import { dirname } from "node:path";
+import { Buffer } from "node:buffer";
 import { loadConfig } from "../src/config.ts";
 import { fetchTextLimited } from "../src/fetch-text.ts";
 import { sha256Hex } from "../src/hash.ts";
@@ -32,8 +33,9 @@ const existing = registry.players.find((player) =>
   player.playerHash === playerHash
 );
 const playerConfigPath = playerConfigPathFor(playerHash);
+const existingConfig = await readJsonIfExists(playerConfigPath);
 
-if (existing && await fileExists(playerConfigPath)) {
+if (existing && isReusablePlayerConfig(existingConfig, playerHash)) {
   const releaseTag = `player-${playerHash}`;
   const needsRegistryUpdate = registry.current?.playerHash !== playerHash ||
     registry.current.playerUrl !== playerUrl ||
@@ -57,6 +59,7 @@ if (existing && await fileExists(playerConfigPath)) {
 const playerJs = await fetchPlayerJs(playerUrl);
 const sha256 = sha256Hex(playerJs);
 const preprocessedPlayer = await preprocessPlayer(playerHash, playerJs, config);
+const encodedPreprocessedPlayer = encodeBase64(preprocessedPlayer);
 
 registry.current = { playerHash, playerUrl, discoveredAt: now };
 const playerConfig: PlayerConfig = {
@@ -67,7 +70,8 @@ const playerConfig: PlayerConfig = {
   sha256,
   nTransform: {
     type: "yt-dlp-ejs-preprocessed-player",
-    preprocessedPlayer,
+    preprocessedPlayerEncoding: "base64",
+    preprocessedPlayer: encodedPreprocessedPlayer,
   },
 };
 if (existing) {
@@ -125,12 +129,25 @@ async function writeJson(path: string, value: unknown): Promise<void> {
   await Deno.rename(tempPath, path);
 }
 
-async function fileExists(path: string): Promise<boolean> {
+async function readJsonIfExists(path: string): Promise<unknown | null> {
   try {
-    const stat = await Deno.stat(path);
-    return stat.isFile;
+    return JSON.parse(await Deno.readTextFile(path));
   } catch (error) {
-    if (error instanceof Deno.errors.NotFound) return false;
+    if (error instanceof Deno.errors.NotFound) return null;
     throw error;
   }
+}
+
+function isReusablePlayerConfig(value: unknown, playerHash: string): boolean {
+  if (!value || typeof value !== "object") return false;
+  const config = value as Partial<PlayerConfig>;
+  return config.playerHash === playerHash &&
+    config.nTransform?.type === "yt-dlp-ejs-preprocessed-player" &&
+    config.nTransform.preprocessedPlayerEncoding === "base64" &&
+    typeof config.nTransform.preprocessedPlayer === "string" &&
+    config.nTransform.preprocessedPlayer.length > 0;
+}
+
+function encodeBase64(value: string): string {
+  return Buffer.from(value, "utf8").toString("base64");
 }
