@@ -1,0 +1,15 @@
+{
+  "tasks": {
+    "build": "deno check src/**/*.ts scripts/**/*.ts test/**/*.ts",
+    "test": "deno test --allow-read --allow-write --allow-env",
+    "typecheck": "deno check src/**/*.ts scripts/**/*.ts test/**/*.ts",
+    "probe:player": "deno run --allow-net=www.youtube.com --allow-read --allow-write --allow-env scripts/probe-player.ts"
+  },
+  "imports": {
+    "astring": "npm:astring@^1.9.0",
+    "meriyah": "npm:meriyah@^7.1.1"
+  },
+  "compilerOptions": {
+    "strict": true
+  }
+}
