@@ -4,7 +4,7 @@ name: Probe YouTube Player
   push:
     branches: [master]
   schedule:
-    - cron: "*/25 * * * *"
+    - cron: "7,27,47 * * * *"
   workflow_dispatch:
 
 permissions:
