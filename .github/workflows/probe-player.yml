@@ -1,8 +1,6 @@
 name: Probe YouTube Player
 
 "on":
-  push:
-    branches: [master]
   repository_dispatch:
     types: [faraday-player-cron]
   workflow_dispatch:
@@ -38,10 +36,18 @@ jobs:
       - name: Cache dependencies
         run: deno cache --frozen src/*.ts src/zemer/*.ts scripts/*.ts test/*.ts test/integration/*.ts
 
-      - name: Verify notification configuration
+      - name: Verify required secrets
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: test -n "${DISCORD_WEBHOOK_URL}"
+          YT_COOKIE: ${{ secrets.YT_COOKIE }}
+          YT_VISITOR_DATA: ${{ secrets.YT_VISITOR_DATA }}
+        run: |
+          test -n "${DISCORD_WEBHOOK_URL}" || { echo "::error::DISCORD_WEBHOOK_URL is required"; exit 1; }
+          test -n "${YT_VISITOR_DATA}" || { echo "::error::YT_VISITOR_DATA is required"; exit 1; }
+          case "${YT_COOKIE}" in
+            *SAPISID=*) ;;
+            *) echo "::error::YT_COOKIE must include SAPISID"; exit 1 ;;
+          esac
 
       - name: Verify
         run: deno task --frozen ci

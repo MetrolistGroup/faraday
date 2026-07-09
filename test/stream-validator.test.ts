@@ -1,11 +1,54 @@
 import { assertEquals, assertRejects } from "@std/assert";
+import type { InnertubeCred } from "../src/innertube-cred.ts";
 import {
+  fetchSignatureCipher,
   fetchSignatureCipherGuest,
   probeCdnStream,
   validateCandidatePairs,
 } from "../src/zemer/stream-validator.ts";
 
 const CDN_URL = "https://x.googlevideo.com/videoplayback?n=valid_n_value";
+
+Deno.test("authenticated cipher fetch is preferred when credentials exist", async () => {
+  const originalFetch = globalThis.fetch;
+  const requests: RequestInit[] = [];
+  globalThis.fetch = ((_input, init) => {
+    requests.push(init ?? {});
+    return Promise.resolve(
+      new Response(JSON.stringify({
+        playabilityStatus: { status: "OK" },
+        streamingData: {
+          adaptiveFormats: [{
+            mimeType: "audio/webm",
+            signatureCipher: signatureCipher("abc"),
+          }],
+        },
+      })),
+    );
+  }) as typeof fetch;
+  const cred: InnertubeCred = {
+    cookie: "SAPISID=test-secret",
+    visitorData: "visitor-data",
+    dataSyncId: "",
+    source: "test",
+  };
+
+  try {
+    const result = await fetchSignatureCipher(1, {
+      videoId: "dQw4w9WgXcQ",
+      cred,
+      preferAuth: true,
+    });
+    assertEquals(result.mode, "authenticated");
+    assertEquals(requests.length, 1);
+    assertEquals(
+      new Headers(requests[0]?.headers).get("cookie"),
+      cred.cookie,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 Deno.test("CDN validation requires 206 audio range bytes", async () => {
   const originalFetch = globalThis.fetch;

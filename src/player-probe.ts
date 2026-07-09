@@ -155,6 +155,7 @@ export async function runPlayerProbe(config: Config): Promise<ProbeResult> {
       const cipherResult = await fetchSignatureCipher(derived.sts, {
         videoId,
         cred,
+        preferAuth: !!cred.cookie,
         timeoutMs: config.fetchTimeoutMs,
       });
       ciphers.push(cipherResult.cipher);

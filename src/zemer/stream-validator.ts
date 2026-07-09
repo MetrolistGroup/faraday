@@ -269,7 +269,7 @@ export async function fetchSignatureCipher(
     ? ["authenticated", "guest"]
     : ["guest", "authenticated"];
 
-  let lastError: Error | null = null;
+  const errors: string[] = [];
   for (const mode of order) {
     if (mode === "authenticated") {
       if (!cred?.cookie) continue;
@@ -282,7 +282,7 @@ export async function fetchSignatureCipher(
         );
         return { cipher, mode };
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
+        errors.push(`${mode}: ${errorMessage(error)}`);
       }
       continue;
     }
@@ -291,11 +291,18 @@ export async function fetchSignatureCipher(
       const cipher = await fetchSignatureCipherGuest(sts, videoId, timeoutMs);
       return { cipher, mode };
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
+      errors.push(`${mode}: ${errorMessage(error)}`);
     }
   }
 
-  throw lastError ?? new Error("could not fetch signatureCipher");
+  if (!cred?.cookie) {
+    errors.push("authenticated: unavailable (YT_COOKIE is not configured)");
+  }
+  throw new Error(
+    `could not fetch signatureCipher${
+      errors.length ? ` (${errors.join("; ")})` : ""
+    }`,
+  );
 }
 
 export type CdnProbeResult = {
@@ -542,6 +549,10 @@ function cdnFailure(status: number | string): CdnProbeResult {
     contentType: null,
     contentRange: null,
   };
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 export async function loadCredForValidation(): Promise<InnertubeCred> {
