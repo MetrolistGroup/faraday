@@ -1,15 +1,16 @@
 # Faraday
 
-Faraday is a generator for YouTube player configurations.
+Faraday watches YouTube `player.js` rotations, derives cipher configs (`sig`,
+`nClass`, `sts`, `aliases`), validates them against real CDN streams, and
+updates the registry automatically.
 
 ## Used by
 
 - Metrolist KMP (WIP)
 
-If you use Faraday and encounter any issues, please open an issue on the
-repository.
-
 ## Acknowledgments
 
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) for the solver.
-- [zemer-cipher](https://github.com/ZemerTeam/zemer-cipher) for the base implementation.
+- [zemer-cipher](https://github.com/ZemerTeam/zemer-cipher) — config schema and
+  parser rules
+- [zemer-app](https://github.com/ZemerTeam/zemer-app) — deriver and HTTP 206
+  validator patterns

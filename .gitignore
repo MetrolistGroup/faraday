@@ -4,3 +4,6 @@ data/
 .env
 .DS_Store
 .cortexkit
+.cursor/
+derived_player_configs.json
+innertube_cookie.txt

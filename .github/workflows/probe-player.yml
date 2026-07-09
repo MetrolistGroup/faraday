@@ -3,9 +3,14 @@ name: Probe YouTube Player
 "on":
   push:
     branches: [master]
-  schedule:
-    - cron: "7,27,47 * * * *"
+  repository_dispatch:
+    types: [faraday-player-cron]
   workflow_dispatch:
+    inputs:
+      player_hashes:
+        description: Optional comma-separated regional player hashes
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -17,6 +22,7 @@ concurrency:
 jobs:
   probe:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -27,19 +33,30 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          deno-version: v2.9.1
 
       - name: Cache dependencies
-        run: deno cache scripts/probe-player.ts test/registry.test.ts
+        run: deno cache --frozen src/*.ts src/zemer/*.ts scripts/*.ts test/*.ts test/integration/*.ts
 
-      - name: Run tests
-        run: deno task test
+      - name: Verify notification configuration
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: test -n "${DISCORD_WEBHOOK_URL}"
 
-      - name: Typecheck
-        run: deno task typecheck
+      - name: Verify
+        run: deno task --frozen ci
 
       - name: Probe current player
-        run: deno task probe:player
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          YT_COOKIE: ${{ secrets.YT_COOKIE }}
+          YT_VISITOR_DATA: ${{ secrets.YT_VISITOR_DATA }}
+          YT_DATASYNC_ID: ${{ secrets.YT_DATASYNC_ID }}
+          PLAYER_HASHES: ${{ github.event.client_payload.player_hashes || inputs.player_hashes || '' }}
+        run: deno task --frozen probe:player
+
+      - name: Verify generated artifacts
+        run: deno task --frozen ci
 
       - name: Commit registry update
         id: auto-commit
@@ -49,7 +66,7 @@ jobs:
           commit_user_name: ${{ github.actor }}
           commit_user_email: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
           commit_author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
-          file_pattern: registry/player-registry.json registry/players/*.json
+          file_pattern: registry/player-registry.json registry/player_configs.json registry/releases/*.json
 
       - name: Create player release
         env:
@@ -57,8 +74,12 @@ jobs:
         run: |
           PLAYER_HASH="$(jq -er '.current.playerHash // empty' registry/player-registry.json)"
           TAG="player-${PLAYER_HASH}"
-          CONFIG_PATH="registry/players/${PLAYER_HASH}.json"
+          RELEASE_PATH="registry/releases/${PLAYER_HASH}.json"
+          CONFIG_PATH="registry/player_configs.json"
+          test -f "${RELEASE_PATH}"
           test -f "${CONFIG_PATH}"
+          jq -e --arg hash "${PLAYER_HASH}" '.players[$hash] | .sig and .nClass and (.sts > 0)' "${CONFIG_PATH}" >/dev/null
+          jq -e --arg hash "${PLAYER_HASH}" --arg url "$(jq -r '.current.playerUrl' registry/player-registry.json)" '.playerHash == $hash and .playerUrl == $url' "${RELEASE_PATH}" >/dev/null
           if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
             echo "${TAG} already exists."
           else
@@ -67,10 +88,12 @@ jobs:
           fi
           if gh release view "${TAG}" >/dev/null 2>&1; then
             echo "Release ${TAG} already exists."
-            gh release upload "${TAG}" "${CONFIG_PATH}#player-${PLAYER_HASH}.json" --clobber
+            gh release upload "${TAG}" "${RELEASE_PATH}#player-${PLAYER_HASH}.json" "${CONFIG_PATH}#player_configs.json" --clobber
           else
-            gh release create "${TAG}" "${CONFIG_PATH}#player-${PLAYER_HASH}.json" \
+            gh release create "${TAG}" \
+              "${RELEASE_PATH}#player-${PLAYER_HASH}.json" \
+              "${CONFIG_PATH}#player_configs.json" \
               --verify-tag \
               --title "YouTube player ${PLAYER_HASH}" \
-              --notes "Validated base64-encoded yt-dlp EJS preprocessed-player config for YouTube player ${PLAYER_HASH}."
+              --notes "Faraday cipher config for YouTube player ${PLAYER_HASH}. See player_configs.json for sig/nClass/sts entries."
           fi

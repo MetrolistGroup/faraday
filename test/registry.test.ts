@@ -1,11 +1,27 @@
-import { assertEquals, assertThrows } from "jsr:@std/assert";
-import { discoverCurrentPlayerUrl } from "../src/warmup.ts";
+import { assertEquals, assertThrows } from "@std/assert";
+import type { Config } from "../src/config.ts";
+import {
+  discoverCurrentPlayerUrl,
+  discoverPlayerCandidates,
+} from "../src/warmup.ts";
+import { loadPlayerSource } from "../src/player-source.ts";
 import {
   extractPlayerHash,
-  type PlayerConfig,
   type PlayerRegistry,
   readPlayerRegistry,
+  validatePlayerRegistry,
 } from "../src/registry.ts";
+
+const TEST_CONFIG: Config = {
+  fetchTimeoutMs: 5000,
+  maxWatchBytes: 2_000_000,
+  maxPlayerJsBytes: 4_000_000,
+  warmupVideoId: "dQw4w9WgXcQ",
+  validationVideoIds: ["dQw4w9WgXcQ", "9bZkp7q19f0"],
+  playerRegistryPath: "registry/player-registry.json",
+  playerConfigsPath: "registry/player_configs.json",
+  extraPlayerHashes: [],
+};
 
 Deno.test("extracts YouTube player hashes", () => {
   assertEquals(
@@ -16,23 +32,78 @@ Deno.test("extracts YouTube player hashes", () => {
   );
 });
 
+Deno.test("rejects unsupported player hash formats", () => {
+  assertThrows(() =>
+    extractPlayerHash(
+      "https://www.youtube.com/s/player/not-eight/player_ias.vflset/en_GB/base.js",
+    )
+  );
+});
+
 Deno.test("normalizes protocol-relative YouTube player URLs", async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = (async () =>
-    new Response(
-      '<script src="//www.youtube.com/s/player/4918c89a/player_ias.vflset/en_US/base.js"></script>',
-    )) as unknown as typeof fetch;
+  globalThis.fetch = ((input: string | URL | Request) => {
+    const url = String(input);
+    const body = url.endsWith("/iframe_api")
+      ? 'var player="\\/s\\/player\\/4918c89a\\/";'
+      : '<script src="//www.youtube.com/s/player/4918c89a/player_ias.vflset/en_US/base.js"></script>';
+    return Promise.resolve(new Response(body));
+  }) as typeof fetch;
   try {
     assertEquals(
-      await discoverCurrentPlayerUrl({
-        fetchTimeoutMs: 5000,
-        maxWatchBytes: 2_000_000,
-        maxPlayerJsBytes: 4_000_000,
-        ejsDir: "src/yt_ejs",
-        warmupVideoId: "test-video",
-        playerRegistryPath: "registry/player-registry.json",
-      }),
-      "https://www.youtube.com/s/player/4918c89a/player_ias.vflset/en_US/base.js",
+      await discoverCurrentPlayerUrl(TEST_CONFIG),
+      "https://www.youtube.com/s/player/4918c89a/player_ias.vflset/en_GB/base.js",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("loadPlayerSource fetches a hash-specific player when hash is provided", async () => {
+  const originalFetch = globalThis.fetch;
+  let requestedUrl = "";
+  globalThis.fetch = ((input: string | URL | Request) => {
+    requestedUrl = String(input);
+    return Promise.resolve(new Response("var player = true;"));
+  }) as unknown as typeof fetch;
+  try {
+    const source = await loadPlayerSource(TEST_CONFIG, {
+      playerHash: "66a6ea83",
+      cipherMode: true,
+    });
+    assertEquals(
+      requestedUrl,
+      "https://www.youtube.com/s/player/66a6ea83/player_ias.vflset/en_GB/base.js",
+    );
+    assertEquals(source.playerHash, "66a6ea83");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("discovery includes externally configured regional rotations", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = ((input: string | URL | Request) => {
+    const url = String(input);
+    if (url.endsWith("/iframe_api")) {
+      return Promise.resolve(
+        new Response('var player="\\/s\\/player\\/4918c89a\\/";'),
+      );
+    }
+    return Promise.resolve(
+      new Response(
+        '<script src="/s/player/4918c89a/player_es6.vflset/en_US/base.js"></script>',
+      ),
+    );
+  }) as typeof fetch;
+  try {
+    const candidates = await discoverPlayerCandidates({
+      ...TEST_CONFIG,
+      extraPlayerHashes: ["66a6ea83"],
+    });
+    assertEquals(
+      candidates.map((candidate) => candidate.playerHash),
+      ["4918c89a", "66a6ea83"],
     );
   } finally {
     globalThis.fetch = originalFetch;
@@ -40,19 +111,15 @@ Deno.test("normalizes protocol-relative YouTube player URLs", async () => {
 });
 
 Deno.test("missing registry reads as empty but corrupt registry throws", () => {
-  const dir = Deno.makeTempDirSync({ prefix: "faraday-" });
-  const missingPath = `${dir}/missing.json`;
-  const corruptPath = `${dir}/corrupt.json`;
-  try {
-    assertEquals(readPlayerRegistry(missingPath), null);
-    Deno.writeTextFileSync(corruptPath, "{");
-    assertThrows(() => readPlayerRegistry(corruptPath));
-  } finally {
-    Deno.removeSync(dir, { recursive: true });
-  }
+  assertEquals(readPlayerRegistry("test/fixtures/missing-registry.json"), null);
+  assertThrows(() =>
+    readPlayerRegistry(
+      "test/fixtures/zemer-config-parity/reject-malformed.json",
+    )
+  );
 });
 
-Deno.test("player config shape matches immutable release URL model", () => {
+Deno.test("player release record identifies the Faraday validator", () => {
   const hash = "4918c89a";
   const registry: PlayerRegistry = {
     schemaVersion: 1,
@@ -71,8 +138,8 @@ Deno.test("player config shape matches immutable release URL model", () => {
         sha256: "abc",
         firstSeenAt: "2026-07-06T00:00:00.000Z",
         status: "validated",
-        validator: "yt-dlp-ejs",
-        configPath: `registry/players/${hash}.json`,
+        validator: "faraday",
+        configPath: "registry/player_configs.json",
         releaseTag: `player-${hash}`,
       },
     ],
@@ -80,22 +147,19 @@ Deno.test("player config shape matches immutable release URL model", () => {
   const entry = registry.players[0];
   if (!entry) throw new Error("missing registry entry");
 
-  const config: PlayerConfig = {
-    schemaVersion: 1,
-    generatedAt: "2026-07-06T00:00:00.000Z",
-    playerHash: hash,
-    playerUrl: entry.playerUrl,
-    sha256: entry.sha256,
-    nTransform: {
-      type: "yt-dlp-ejs-preprocessed-player",
-      preprocessedPlayerEncoding: "base64",
-      preprocessedPlayer: "preprocessed-player-js",
-    },
-  };
-
-  assertEquals(entry.configPath, `registry/players/${hash}.json`);
+  assertEquals(entry.configPath, "registry/player_configs.json");
   assertEquals(entry.releaseTag, `player-${hash}`);
-  assertEquals(config.nTransform.type, "yt-dlp-ejs-preprocessed-player");
-  assertEquals(config.nTransform.preprocessedPlayerEncoding, "base64");
-  assertEquals(registry.current?.playerHash, config.playerHash);
+  assertEquals(entry.validator, "faraday");
+  assertEquals(registry.current?.playerHash, hash);
+});
+
+Deno.test("registry schema validation rejects structurally corrupt JSON", () => {
+  assertThrows(() =>
+    validatePlayerRegistry({
+      schemaVersion: 1,
+      updatedAt: "not-a-date",
+      current: null,
+      players: [],
+    })
+  );
 });

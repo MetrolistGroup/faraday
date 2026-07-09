@@ -1,14 +1,21 @@
 {
   "tasks": {
-    "build": "deno check src/**/*.ts scripts/**/*.ts test/**/*.ts",
-    "test": "deno test --allow-read --allow-write --allow-env",
-    "typecheck": "deno check src/**/*.ts scripts/**/*.ts test/**/*.ts",
-    "probe:player": "deno run --allow-net=www.youtube.com --allow-read --allow-write --allow-env scripts/probe-player.ts"
+    "build": "deno task typecheck",
+    "ci": "deno task typecheck && deno task lint && deno task test && deno task verify:artifacts",
+    "ci:full": "deno task ci && deno task test:integration",
+    "fmt:check": "deno fmt --check src/ scripts/*.ts test/*.ts test/integration/*.ts deno.json README.md .github/workflows/*.yml",
+    "lint": "deno lint src/ scripts/ test/",
+    "test": "deno test --allow-read --allow-write --allow-run=deno --allow-env --ignore=test/integration test/",
+    "test:integration": "deno test --allow-read --allow-run=deno --allow-env --allow-net=www.youtube.com,music.youtube.com,*.googlevideo.com test/integration/",
+    "typecheck": "deno check src/ scripts/ test/",
+    "verify:artifacts": "deno run --allow-read --allow-env scripts/verify-artifacts.ts",
+    "probe:player": "deno run --allow-net=www.youtube.com,music.youtube.com,discord.com,*.googlevideo.com --allow-read --allow-write --allow-run=deno --allow-env scripts/probe-player.ts",
+    "player:derive": "deno run --allow-net=www.youtube.com --allow-read --allow-env scripts/derive-player-config.ts",
+    "player:validate": "deno run --allow-net=www.youtube.com,music.youtube.com,discord.com,*.googlevideo.com --allow-read --allow-write --allow-run=deno --allow-env scripts/validate-player-config.ts"
   },
   "imports": {
-    "astring": "npm:astring@^1.9.0",
-    "meriyah": "npm:meriyah@^7.1.1",
-    "terser": "npm:terser@^5.48.0"
+    "@std/assert": "jsr:@std/assert@^1.0.19",
+    "jsdom": "npm:jsdom@^26.1.0"
   },
   "compilerOptions": {
     "strict": true
