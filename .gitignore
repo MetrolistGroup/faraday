@@ -1,6 +1,7 @@
 node_modules/
 dist/
 data/
+cron
 .env
 .DS_Store
 .cortexkit
