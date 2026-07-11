@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-11T06:27:21.763Z",
+  "updatedAt": "2026-07-11T06:47:20.575Z",
   "current": {
-    "playerHash": "c37d60f8",
-    "playerUrl": "https://www.youtube.com/s/player/c37d60f8/player_ias.vflset/en_GB/base.js",
-    "discoveredAt": "2026-07-11T06:27:21.763Z"
+    "playerHash": "66a6ea83",
+    "playerUrl": "https://www.youtube.com/s/player/66a6ea83/player_ias.vflset/en_GB/base.js",
+    "discoveredAt": "2026-07-11T06:47:20.575Z"
   },
   "players": [
     {
