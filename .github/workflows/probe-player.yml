@@ -36,7 +36,16 @@ jobs:
       - name: Cache dependencies
         run: deno cache --frozen src/*.ts src/zemer/*.ts scripts/*.ts test/*.ts test/integration/*.ts
 
+      - name: Detect new player
+        id: detect-player
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          PROBE_CHECK_ONLY: "1"
+          PLAYER_HASHES: ${{ github.event.client_payload.player_hashes || inputs.player_hashes || '' }}
+        run: deno task --frozen probe:player
+
       - name: Verify required secrets
+        if: steps.detect-player.outputs.new_player == 'true'
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           YT_COOKIE: ${{ secrets.YT_COOKIE }}
@@ -50,21 +59,26 @@ jobs:
           esac
 
       - name: Verify
+        if: steps.detect-player.outputs.new_player == 'true'
         run: deno task --frozen ci
 
       - name: Probe current player
+        if: steps.detect-player.outputs.new_player == 'true'
+        id: probe-player
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           YT_COOKIE: ${{ secrets.YT_COOKIE }}
           YT_VISITOR_DATA: ${{ secrets.YT_VISITOR_DATA }}
           YT_DATASYNC_ID: ${{ secrets.YT_DATASYNC_ID }}
-          PLAYER_HASHES: ${{ github.event.client_payload.player_hashes || inputs.player_hashes || '' }}
+          PLAYER_HASHES: ${{ steps.detect-player.outputs.player_hash }}
         run: deno task --frozen probe:player
 
       - name: Verify generated artifacts
+        if: steps.probe-player.outputs.processed_player == 'true'
         run: deno task --frozen ci
 
       - name: Commit registry update
+        if: steps.probe-player.outputs.processed_player == 'true'
         id: auto-commit
         uses: stefanzweifel/git-auto-commit-action@v7.2.0
         with:
@@ -75,6 +89,7 @@ jobs:
           file_pattern: registry/player-registry.json registry/player_configs.json registry/releases/*.json
 
       - name: Create player release
+        if: steps.probe-player.outputs.processed_player == 'true'
         env:
           GH_TOKEN: ${{ secrets.FARADAY_RELEASE_TOKEN || github.token }}
         run: |

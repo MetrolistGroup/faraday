@@ -56,17 +56,21 @@ export type ProbeSuccess = {
   playerUrl: string;
   action:
     | "unchanged"
+    | "new-player"
     | "registry-updated"
     | "stream-validated"
     | "derived-and-written";
-  streamMode: "guest" | "authenticated";
+  streamMode: "guest" | "authenticated" | null;
 };
 
 export type ProbeResult =
   | { ok: true; success: ProbeSuccess }
   | { ok: false; failure: ProbeFailure };
 
-export async function runPlayerProbe(config: Config): Promise<ProbeResult> {
+export async function runPlayerProbe(
+  config: Config,
+  options: { checkOnly?: boolean } = {},
+): Promise<ProbeResult> {
   const now = new Date().toISOString();
   const registryPath = config.playerRegistryPath;
   const registryDir = dirname(registryPath);
@@ -111,6 +115,29 @@ export async function runPlayerProbe(config: Config): Promise<ProbeResult> {
   if (!candidate) return fail("discovery", "unknown", "no player candidate");
   const playerUrl = normalizePlayerUrl(candidate.playerUrl, true);
   const playerHash = extractPlayerHash(playerUrl);
+
+  if (store.has(playerHash)) {
+    return {
+      ok: true,
+      success: {
+        playerHash,
+        playerUrl,
+        action: "unchanged",
+        streamMode: null,
+      },
+    };
+  }
+  if (options.checkOnly) {
+    return {
+      ok: true,
+      success: {
+        playerHash,
+        playerUrl,
+        action: "new-player",
+        streamMode: null,
+      },
+    };
+  }
 
   let playerJs: string;
   try {

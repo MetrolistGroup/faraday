@@ -5,7 +5,7 @@ import { readPlayerConfigsFile } from "../src/zemer/player-config-io.ts";
 
 const HASH = "aaaa1111";
 
-Deno.test("known config validation repairs committed sts before publishing", async () => {
+Deno.test("known player stops after discovery without validation", async () => {
   const directory = await Deno.makeTempDir();
   const config: Config = {
     fetchTimeoutMs: 1000,
@@ -32,8 +32,11 @@ Deno.test("known config validation repairs committed sts before publishing", asy
   try {
     const result = await runPlayerProbe(config);
     assertEquals(result.ok, true, JSON.stringify(result));
+    if (!result.ok) return;
+    assertEquals(result.success.action, "unchanged");
+    assertEquals(result.success.streamMode, null);
     const file = await readPlayerConfigsFile(config.playerConfigsPath);
-    assertEquals(file.players[HASH]?.sts, 20002);
+    assertEquals(file.players[HASH]?.sts, 20001);
   } finally {
     globalThis.fetch = originalFetch;
     await Deno.remove(directory, { recursive: true });

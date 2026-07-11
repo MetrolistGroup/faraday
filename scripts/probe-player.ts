@@ -3,12 +3,19 @@ import { notifyProbeFailure } from "../src/discord-webhook.ts";
 import { runPlayerProbe } from "../src/player-probe.ts";
 
 try {
-  const result = await runPlayerProbe(loadConfig());
+  const result = await runPlayerProbe(loadConfig(), {
+    checkOnly: Deno.env.get("PROBE_CHECK_ONLY") === "1",
+  });
   if (result.ok) {
     const { success } = result;
-    console.log(
-      `Player ${success.playerHash}: ${success.action} (stream=${success.streamMode})`,
+    await setOutput("new_player", String(success.action === "new-player"));
+    await setOutput("player_hash", success.playerHash);
+    await setOutput(
+      "processed_player",
+      String(!["unchanged", "new-player"].includes(success.action)),
     );
+    const stream = success.streamMode ? ` (stream=${success.streamMode})` : "";
+    console.log(`Player ${success.playerHash}: ${success.action}${stream}`);
     Deno.exit(0);
   }
 
@@ -39,3 +46,10 @@ try {
 }
 
 Deno.exit(1);
+
+async function setOutput(name: string, value: string): Promise<void> {
+  const path = Deno.env.get("GITHUB_OUTPUT");
+  if (path) {
+    await Deno.writeTextFile(path, `${name}=${value}\n`, { append: true });
+  }
+}
