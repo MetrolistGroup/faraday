@@ -7,10 +7,14 @@ import { ZEMER_PLAYER_HASH_RE } from "./zemer/player-config-parser.ts";
 const playerUrlPattern =
   /(?:https?:)?\/\/www\.youtube\.com\/s\/player\/[^"'\\]+\/base\.js|\/s\/player\/[^"'\\]+\/base\.js/g;
 const iframePlayerPattern = /\\?\/s\\?\/player\\?\/([a-f0-9]{8})\\?\//g;
+const iframeSampleCount = 30;
+const auxiliarySampleCount = 5;
 
 export type PlayerDiscoverySource =
   | "iframe-api"
+  | "music-page"
   | "watch-page"
+  | "embed-page"
   | "configured";
 
 export type PlayerCandidate = {
@@ -22,11 +26,15 @@ export type PlayerCandidate = {
 export async function discoverPlayerCandidates(
   config: Config,
 ): Promise<PlayerCandidate[]> {
-  const iframePromise = discoverFromIframeApi(config);
-  const watchPromise = discoverFromWatchPage(config);
-  const [iframe, watch] = await Promise.allSettled([
-    iframePromise,
-    watchPromise,
+  const [iframe, music, watch, embed] = await Promise.allSettled([
+    sampleCandidates(iframeSampleCount, () => discoverFromIframeApi(config)),
+    sampleCandidates(
+      auxiliarySampleCount,
+      () =>
+        discoverFromPage("https://music.youtube.com/", "music-page", config),
+    ),
+    sampleCandidates(auxiliarySampleCount, () => discoverFromWatchPage(config)),
+    sampleCandidates(auxiliarySampleCount, () => discoverFromEmbedPage(config)),
   ]);
 
   if (iframe.status === "rejected") {
@@ -37,6 +45,12 @@ export async function discoverPlayerCandidates(
   if (watch.status === "rejected") {
     console.warn(`watch-page discovery skipped: ${errorMessage(watch.reason)}`);
   }
+  if (music.status === "rejected") {
+    console.warn(`music-page discovery skipped: ${errorMessage(music.reason)}`);
+  }
+  if (embed.status === "rejected") {
+    console.warn(`embed-page discovery skipped: ${errorMessage(embed.reason)}`);
+  }
 
   const configured = config.extraPlayerHashes.map((playerHash) => {
     if (!ZEMER_PLAYER_HASH_RE.test(playerHash)) {
@@ -46,7 +60,9 @@ export async function discoverPlayerCandidates(
   });
   const candidates = dedupeCandidates([
     ...iframe.value,
+    ...(music.status === "fulfilled" ? music.value : []),
     ...(watch.status === "fulfilled" ? watch.value : []),
+    ...(embed.status === "fulfilled" ? embed.value : []),
     ...configured,
   ]);
   if (candidates.length === 0) {
@@ -86,19 +102,62 @@ async function discoverFromWatchPage(
   const watchUrl = `https://www.youtube.com/watch?v=${
     encodeURIComponent(config.warmupVideoId)
   }&hl=en&bpctr=9999999999&has_verified=1`;
-  const html = await fetchLimitedWithTimeout(watchUrl, config);
+  return await discoverFromPage(watchUrl, "watch-page", config);
+}
+
+async function discoverFromEmbedPage(
+  config: Config,
+): Promise<PlayerCandidate[]> {
+  const embedUrl = `https://www.youtube.com/embed/${
+    encodeURIComponent(config.warmupVideoId)
+  }`;
+  return await discoverFromPage(embedUrl, "embed-page", config);
+}
+
+async function discoverFromPage(
+  url: string,
+  source: Exclude<PlayerDiscoverySource, "iframe-api" | "configured">,
+  config: Config,
+): Promise<PlayerCandidate[]> {
+  const html = await fetchLimitedWithTimeout(url, config);
   const urls = html.match(playerUrlPattern) ?? [];
   if (urls.length === 0) {
-    throw new Error("could not find player JS URL in watch page");
+    throw new Error(`could not find player JS URL in ${source}`);
   }
   return urls.map((value) => {
     const playerUrl = new URL(value, "https://www.youtube.com").toString();
     return {
       playerHash: extractPlayerHash(playerUrl),
       playerUrl,
-      source: "watch-page" as const,
+      source,
     };
   });
+}
+
+async function sampleCandidates(
+  count: number,
+  sample: () => Promise<PlayerCandidate[]>,
+): Promise<PlayerCandidate[]> {
+  const candidates: PlayerCandidate[] = [];
+  let lastError: unknown;
+  for (let index = 0; index < count; index++) {
+    try {
+      candidates.push(...await sample());
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (candidates.length === 0 && lastError) throw lastError;
+  const counts = new Map<string, number>();
+  for (const candidate of candidates) {
+    counts.set(
+      candidate.playerHash,
+      (counts.get(candidate.playerHash) ?? 0) + 1,
+    );
+  }
+  return candidates.sort((a, b) =>
+    (counts.get(b.playerHash) ?? 0) - (counts.get(a.playerHash) ?? 0)
+  );
 }
 
 async function fetchLimitedWithTimeout(
@@ -117,7 +176,7 @@ async function fetchLimitedWithTimeout(
   }
 }
 
-function candidateForHash(
+export function candidateForHash(
   playerHash: string,
   source: PlayerDiscoverySource,
 ): PlayerCandidate {

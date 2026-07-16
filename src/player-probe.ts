@@ -32,7 +32,7 @@ import {
   loadCredForValidation,
   validateCandidatePairs,
 } from "./zemer/stream-validator.ts";
-import { discoverPlayerCandidates } from "./warmup.ts";
+import { candidateForHash, discoverPlayerCandidates } from "./warmup.ts";
 
 export type ProbeStage =
   | "discovery"
@@ -57,10 +57,13 @@ export type ProbeSuccess = {
   action:
     | "unchanged"
     | "new-player"
+    | "current-updated"
     | "registry-updated"
     | "stream-validated"
     | "derived-and-written";
   streamMode: "guest" | "authenticated" | null;
+  newPlayerHashes?: string[];
+  currentPlayerHash?: string;
 };
 
 export type ProbeResult =
@@ -69,7 +72,11 @@ export type ProbeResult =
 
 export async function runPlayerProbe(
   config: Config,
-  options: { checkOnly?: boolean } = {},
+  options: {
+    checkOnly?: boolean;
+    playerHash?: string;
+    updateCurrent?: boolean;
+  } = {},
 ): Promise<ProbeResult> {
   const now = new Date().toISOString();
   const registryPath = config.playerRegistryPath;
@@ -77,7 +84,9 @@ export async function runPlayerProbe(
 
   let candidates;
   try {
-    candidates = await discoverPlayerCandidates(config);
+    candidates = options.playerHash
+      ? [candidateForHash(options.playerHash, "configured")]
+      : await discoverPlayerCandidates(config);
   } catch (error) {
     return fail(
       "discovery",
@@ -117,6 +126,36 @@ export async function runPlayerProbe(
   const playerHash = extractPlayerHash(playerUrl);
 
   if (store.has(playerHash)) {
+    const existing = registry.players.find((player) =>
+      player.playerHash === playerHash
+    );
+    if (
+      !options.checkOnly && options.updateCurrent !== false && existing &&
+      (registry.current?.playerHash !== playerHash ||
+        registry.current.playerUrl !== playerUrl)
+    ) {
+      registry.current = { playerHash, playerUrl, discoveredAt: now };
+      registry.updatedAt = now;
+      try {
+        await writeRegistry(registryPath, registry);
+      } catch (error) {
+        return fail(
+          "write",
+          playerHash,
+          error instanceof Error ? error.message : String(error),
+          { playerUrl, registryPath },
+        );
+      }
+      return {
+        ok: true,
+        success: {
+          playerHash,
+          playerUrl,
+          action: "current-updated",
+          streamMode: null,
+        },
+      };
+    }
     return {
       ok: true,
       success: {
@@ -128,6 +167,9 @@ export async function runPlayerProbe(
     };
   }
   if (options.checkOnly) {
+    const newPlayerHashes = candidates
+      .filter((item) => !store.has(item.playerHash))
+      .map((item) => item.playerHash);
     return {
       ok: true,
       success: {
@@ -135,6 +177,8 @@ export async function runPlayerProbe(
         playerUrl,
         action: "new-player",
         streamMode: null,
+        newPlayerHashes,
+        currentPlayerHash: candidates[0]?.playerHash,
       },
     };
   }
@@ -282,8 +326,9 @@ export async function runPlayerProbe(
     const releasePath = releasePathFor(registryDir, playerHash);
     const releaseTag = `player-${playerHash}`;
     const needsRegistryUpdate = needsConfigUpdate || !existing ||
-      registry.current?.playerHash !== playerHash ||
-      registry.current?.playerUrl !== playerUrl ||
+      (options.updateCurrent !== false &&
+        (registry.current?.playerHash !== playerHash ||
+          registry.current?.playerUrl !== playerUrl)) ||
       existing.playerUrl !== playerUrl ||
       existing.sha256 !== sha256 ||
       existing.configPath !== config.playerConfigsPath ||
@@ -303,7 +348,9 @@ export async function runPlayerProbe(
       };
     }
 
-    registry.current = { playerHash, playerUrl, discoveredAt: now };
+    if (options.updateCurrent !== false) {
+      registry.current = { playerHash, playerUrl, discoveredAt: now };
+    }
     if (existing) {
       existing.playerUrl = playerUrl;
       existing.sha256 = sha256;
@@ -439,7 +486,9 @@ export async function runPlayerProbe(
   const existing = registry.players.find((player) =>
     player.playerHash === playerHash
   );
-  registry.current = { playerHash, playerUrl, discoveredAt: now };
+  if (options.updateCurrent !== false) {
+    registry.current = { playerHash, playerUrl, discoveredAt: now };
+  }
   const releasePath = releasePathFor(registryDir, playerHash);
   const releaseTag = `player-${playerHash}`;
   if (existing) {
@@ -587,11 +636,18 @@ async function writeReleaseAndRegistry(
   registryPath: string,
   registry: PlayerRegistry,
 ): Promise<void> {
-  validatePlayerRegistry(registry, registryPath);
   await writeTextFileAtomic(
     releasePath,
     `${JSON.stringify(release, null, 2)}\n`,
   );
+  await writeRegistry(registryPath, registry);
+}
+
+async function writeRegistry(
+  registryPath: string,
+  registry: PlayerRegistry,
+): Promise<void> {
+  validatePlayerRegistry(registry, registryPath);
   await writeTextFileAtomic(
     registryPath,
     `${JSON.stringify(registry, null, 2)}\n`,

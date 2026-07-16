@@ -70,7 +70,8 @@ jobs:
           YT_COOKIE: ${{ secrets.YT_COOKIE }}
           YT_VISITOR_DATA: ${{ secrets.YT_VISITOR_DATA }}
           YT_DATASYNC_ID: ${{ secrets.YT_DATASYNC_ID }}
-          PLAYER_HASHES: ${{ steps.detect-player.outputs.player_hash }}
+          PLAYER_HASHES: ${{ steps.detect-player.outputs.probe_player_hashes }}
+          CURRENT_PLAYER_HASH: ${{ steps.detect-player.outputs.current_player_hash }}
         run: deno task --frozen probe:player
 
       - name: Verify generated artifacts
@@ -93,28 +94,31 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.FARADAY_RELEASE_TOKEN || github.token }}
         run: |
-          PLAYER_HASH="$(jq -er '.current.playerHash // empty' registry/player-registry.json)"
-          TAG="player-${PLAYER_HASH}"
-          RELEASE_PATH="registry/releases/${PLAYER_HASH}.json"
           CONFIG_PATH="registry/player_configs.json"
-          test -f "${RELEASE_PATH}"
           test -f "${CONFIG_PATH}"
-          jq -e --arg hash "${PLAYER_HASH}" '.players[$hash] | .sig and .nClass and (.sts > 0)' "${CONFIG_PATH}" >/dev/null
-          jq -e --arg hash "${PLAYER_HASH}" --arg url "$(jq -r '.current.playerUrl' registry/player-registry.json)" '.playerHash == $hash and .playerUrl == $url' "${RELEASE_PATH}" >/dev/null
-          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
-            echo "${TAG} already exists."
-          else
-            git tag "${TAG}"
-            git push origin "refs/tags/${TAG}"
-          fi
-          if gh release view "${TAG}" >/dev/null 2>&1; then
-            echo "Release ${TAG} already exists."
-            gh release upload "${TAG}" "${RELEASE_PATH}#player-${PLAYER_HASH}.json" "${CONFIG_PATH}#player_configs.json" --clobber
-          else
-            gh release create "${TAG}" \
-              "${RELEASE_PATH}#player-${PLAYER_HASH}.json" \
-              "${CONFIG_PATH}#player_configs.json" \
-              --verify-tag \
-              --title "YouTube player ${PLAYER_HASH}" \
-              --notes "Faraday cipher config for YouTube player ${PLAYER_HASH}. See player_configs.json for sig/nClass/sts entries."
-          fi
+          IFS=',' read -ra PLAYER_HASHES <<< "${{ steps.probe-player.outputs.processed_player_hashes }}"
+          for PLAYER_HASH in "${PLAYER_HASHES[@]}"; do
+            TAG="player-${PLAYER_HASH}"
+            RELEASE_PATH="registry/releases/${PLAYER_HASH}.json"
+            PLAYER_URL="https://www.youtube.com/s/player/${PLAYER_HASH}/player_ias.vflset/en_GB/base.js"
+            test -f "${RELEASE_PATH}"
+            jq -e --arg hash "${PLAYER_HASH}" '[.players | to_entries[] | select(.key == $hash or (((.value.aliases // []) | index($hash)) != null)) | .value][0] | .sig and .nClass and (.sts > 0)' "${CONFIG_PATH}" >/dev/null
+            jq -e --arg hash "${PLAYER_HASH}" --arg url "${PLAYER_URL}" '.playerHash == $hash and .playerUrl == $url' "${RELEASE_PATH}" >/dev/null
+            if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+              echo "${TAG} already exists."
+            else
+              git tag "${TAG}"
+              git push origin "refs/tags/${TAG}"
+            fi
+            if gh release view "${TAG}" >/dev/null 2>&1; then
+              echo "Release ${TAG} already exists."
+              gh release upload "${TAG}" "${RELEASE_PATH}#player-${PLAYER_HASH}.json" "${CONFIG_PATH}#player_configs.json" --clobber
+            else
+              gh release create "${TAG}" \
+                "${RELEASE_PATH}#player-${PLAYER_HASH}.json" \
+                "${CONFIG_PATH}#player_configs.json" \
+                --verify-tag \
+                --title "YouTube player ${PLAYER_HASH}" \
+                --notes "Faraday cipher config for YouTube player ${PLAYER_HASH}. See player_configs.json for sig/nClass/sts entries."
+            fi
+          done

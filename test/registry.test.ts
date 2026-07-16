@@ -110,6 +110,48 @@ Deno.test("discovery includes externally configured regional rotations", async (
   }
 });
 
+Deno.test("discovery samples canary and auxiliary player surfaces", async () => {
+  const originalFetch = globalThis.fetch;
+  let iframeRequests = 0;
+  const requestCounts = new Map<string, number>();
+  globalThis.fetch = ((input: string | URL | Request) => {
+    const url = String(input);
+    requestCounts.set(url, (requestCounts.get(url) ?? 0) + 1);
+    if (url.endsWith("/iframe_api")) {
+      iframeRequests++;
+      const hash = iframeRequests === 1 ? "caaca001" : "4918c89a";
+      return Promise.resolve(
+        new Response(`var player="\\/s\\/player\\/${hash}\\/";`),
+      );
+    }
+    const hash = url.startsWith("https://music.youtube.com/")
+      ? "abcde001"
+      : url.includes("/embed/")
+      ? "abcde002"
+      : "4918c89a";
+    return Promise.resolve(
+      new Response(
+        `<script src="/s/player/${hash}/player_ias.vflset/en_US/base.js"></script>`,
+      ),
+    );
+  }) as typeof fetch;
+  try {
+    const candidates = await discoverPlayerCandidates(TEST_CONFIG);
+    assertEquals(
+      candidates.map((candidate) => candidate.playerHash),
+      ["4918c89a", "caaca001", "abcde001", "abcde002"],
+    );
+    assertEquals(iframeRequests, 30);
+    assertEquals(requestCounts.get("https://music.youtube.com/"), 5);
+    assertEquals(
+      requestCounts.get("https://www.youtube.com/embed/dQw4w9WgXcQ"),
+      5,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 Deno.test("missing registry reads as empty but corrupt registry throws", () => {
   assertEquals(readPlayerRegistry("test/fixtures/missing-registry.json"), null);
   assertThrows(() =>
