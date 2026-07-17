@@ -952,6 +952,14 @@
       "aliases": [
         "4fead933"
       ]
+    },
+    "e7fdae96": {
+      "sig": "fr(7,246,INPUT)",
+      "nClass": "DU",
+      "sts": 20650,
+      "aliases": [
+        "462573b7"
+      ]
     }
   }
 }
