@@ -913,6 +913,14 @@
         "99640c8c"
       ]
     },
+    "01fad9fb": {
+      "sig": "fr(7,246,INPUT)",
+      "nClass": "DU",
+      "sts": 20650,
+      "aliases": [
+        "49d0e879"
+      ]
+    },
     "3bd821dc": {
       "sig": "E4(7,246,INPUT)",
       "nClass": "yG",
