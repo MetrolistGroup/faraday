@@ -976,6 +976,14 @@
       "aliases": [
         "398d62ae"
       ]
+    },
+    "95a2d00d": {
+      "sig": "aR(1,886,INPUT)",
+      "nClass": "PM",
+      "sts": 20651,
+      "aliases": [
+        "1b381bac"
+      ]
     }
   }
 }
