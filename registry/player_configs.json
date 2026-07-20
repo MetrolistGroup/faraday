@@ -1008,6 +1008,14 @@
       "aliases": [
         "e0dac9a6"
       ]
+    },
+    "2471f939": {
+      "sig": "RO(2,8691,INPUT)",
+      "nClass": "qY",
+      "sts": 20653,
+      "aliases": [
+        "d715020f"
+      ]
     }
   }
 }
