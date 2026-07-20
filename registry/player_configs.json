@@ -992,6 +992,14 @@
       "aliases": [
         "3fbc5aa6"
       ]
+    },
+    "120bf048": {
+      "sig": "RO(2,8691,INPUT)",
+      "nClass": "qY",
+      "sts": 20653,
+      "aliases": [
+        "e0dac9a6"
+      ]
     }
   }
 }
