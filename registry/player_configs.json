@@ -1184,6 +1184,14 @@
       "aliases": [
         "44c494d5"
       ]
+    },
+    "bc3ac2f2": {
+      "sig": "NQ(2,5969,INPUT)",
+      "nClass": "MJ",
+      "sts": 20657,
+      "aliases": [
+        "3f920062"
+      ]
     }
   }
 }
