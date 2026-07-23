@@ -1144,6 +1144,14 @@
       "aliases": [
         "e5c30810"
       ]
+    },
+    "86f09c9d": {
+      "sig": "Zi(72,5647,INPUT)",
+      "nClass": "on",
+      "sts": 20656,
+      "aliases": [
+        "e87d8b22"
+      ]
     }
   }
 }
