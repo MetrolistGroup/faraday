@@ -1233,6 +1233,14 @@
         "510a8c9f"
       ]
     },
+    "be41592d": {
+      "sig": "OV(12,8334,INPUT)",
+      "nClass": "T8",
+      "sts": 20658,
+      "aliases": [
+        "5fa204bf"
+      ]
+    },
     "ff8caf21": {
       "sig": "Z1(12,8334,INPUT)",
       "nClass": "cY",
