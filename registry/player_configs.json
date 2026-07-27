@@ -1280,6 +1280,14 @@
       "aliases": [
         "4a4108ca"
       ]
+    },
+    "016aac24": {
+      "sig": "OX(20,7707,INPUT)",
+      "nClass": "eH",
+      "sts": 20661,
+      "aliases": [
+        "d675461f"
+      ]
     }
   }
 }
