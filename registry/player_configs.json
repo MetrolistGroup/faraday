@@ -1288,6 +1288,14 @@
       "aliases": [
         "d675461f"
       ]
+    },
+    "59bb7746": {
+      "sig": "KF(20,7707,INPUT)",
+      "nClass": "Vp",
+      "sts": 20661,
+      "aliases": [
+        "0fece123"
+      ]
     }
   }
 }
