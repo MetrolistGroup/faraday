@@ -1264,6 +1264,14 @@
       "aliases": [
         "246ec987"
       ]
+    },
+    "b81a9a58": {
+      "sig": "Rh(43,5938,INPUT)",
+      "nClass": "Gx",
+      "sts": 20660,
+      "aliases": [
+        "4a4108ca"
+      ]
     }
   }
 }
