@@ -1344,6 +1344,14 @@
       "aliases": [
         "ea0930f3"
       ]
+    },
+    "e3deca0e": {
+      "sig": "tT(11,6026,INPUT)",
+      "nClass": "DV",
+      "sts": 20662,
+      "aliases": [
+        "431c8085"
+      ]
     }
   }
 }
