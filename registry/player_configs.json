@@ -1496,6 +1496,14 @@
       "aliases": [
         "ebaa5341"
       ]
+    },
+    "fbf778eb": {
+      "sig": "R4(18,1616,INPUT)",
+      "nClass": "eq",
+      "sts": 20665,
+      "aliases": [
+        "8473a5de"
+      ]
     }
   }
 }
