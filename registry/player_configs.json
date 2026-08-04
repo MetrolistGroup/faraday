@@ -1576,6 +1576,14 @@
       "aliases": [
         "6606c4ec"
       ]
+    },
+    "bb44c5fe": {
+      "sig": "DN(3,1780,INPUT)",
+      "nClass": "tL",
+      "sts": 20668,
+      "aliases": [
+        "9d7bd3a4"
+      ]
     }
   }
 }
