@@ -446,20 +446,27 @@ export async function validateCandidatePairs(
       }
       const probes: CdnProbeResult[] = [];
       for (const url of evaluation.urls) {
-        const fetchRemaining = deadline - Date.now();
-        if (fetchRemaining <= 0) {
-          throw new Error("candidate validation deadline exceeded");
-        }
-        probes.push(
-          await probeCdnStream(
+        let probe: CdnProbeResult;
+        for (let probeAttempt = 0;; probeAttempt++) {
+          const fetchRemaining = deadline - Date.now();
+          if (fetchRemaining <= 0) {
+            throw new Error("candidate validation deadline exceeded");
+          }
+          probe = await probeCdnStream(
             url,
             "bytes=0-262143",
             Math.min(
               options.timeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS,
               fetchRemaining,
             ),
-          ),
-        );
+          );
+          if (
+            probeAttempt > 0 || probe.valid ||
+            typeof probe.status !== "string" ||
+            !probe.status.startsWith("ERR:")
+          ) break;
+        }
+        probes.push(probe);
       }
       sampleStatuses = probes.map((probe) => probe.status);
       status = sampleStatuses.length === 1

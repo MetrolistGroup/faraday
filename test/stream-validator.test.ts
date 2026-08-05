@@ -113,6 +113,32 @@ Deno.test("multiple passing candidate pairs are rejected as ambiguous", async ()
   }
 });
 
+Deno.test("candidate validation retries transient CDN failures once", async () => {
+  const originalFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = (() => {
+    requests++;
+    return requests % 2 === 1
+      ? Promise.reject(new Error("temporary network failure"))
+      : Promise.resolve(cdnResponse(206));
+  }) as typeof fetch;
+  try {
+    const result = await validateCandidatePairs(
+      syntheticPlayer(),
+      "aaaa1111",
+      "bbbb2222",
+      1,
+      [signatureCipher("abc"), signatureCipher("def")],
+      [{ sig: "S(1,2,INPUT)", nClass: "X" }],
+      { timeoutMs: 1000, runtimeTimeoutMs: 5000 },
+    );
+    assertEquals(result.winner?.playerHash, "aaaa1111");
+    assertEquals(requests, 4);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 Deno.test("candidate validation enforces its pair cap", async () => {
   await assertRejects(() =>
     validateCandidatePairs(
