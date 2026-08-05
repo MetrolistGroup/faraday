@@ -1617,6 +1617,14 @@
         "91800f43"
       ]
     },
+    "4d8c79a5": {
+      "sig": "IQ(18,3262,INPUT)",
+      "nClass": "Dp",
+      "sts": 20669,
+      "aliases": [
+        "ad948f90"
+      ]
+    },
     "7ca87de3": {
       "sig": "eA(18,3262,INPUT)",
       "nClass": "MF",
