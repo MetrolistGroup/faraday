@@ -1712,6 +1712,14 @@
       "aliases": [
         "3b014dc3"
       ]
+    },
+    "92b88e4d": {
+      "sig": "EX(1,5539,INPUT)",
+      "nClass": "Xz",
+      "sts": 20671,
+      "aliases": [
+        "314cc4c1"
+      ]
     }
   }
 }
