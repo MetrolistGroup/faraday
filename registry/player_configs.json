@@ -1673,6 +1673,22 @@
         "3a80d66f"
       ]
     },
+    "17554f56": {
+      "sig": "$S(25,558,INPUT)",
+      "nClass": "b6",
+      "sts": 20670,
+      "aliases": [
+        "deddecbb"
+      ]
+    },
+    "341562bc": {
+      "sig": "Ii(25,558,INPUT)",
+      "nClass": "as",
+      "sts": 20670,
+      "aliases": [
+        "a3fe4c92"
+      ]
+    },
     "4c6b06b8": {
       "sig": "Ii(25,558,INPUT)",
       "nClass": "as",
