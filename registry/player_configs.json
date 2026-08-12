@@ -1920,6 +1920,14 @@
       "aliases": [
         "9c22ed27"
       ]
+    },
+    "0ffea8e4": {
+      "sig": "h4(26,6906,INPUT)",
+      "nClass": "He",
+      "sts": 20677,
+      "aliases": [
+        "68c1c685"
+      ]
     }
   }
 }
