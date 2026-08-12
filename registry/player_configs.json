@@ -1896,6 +1896,14 @@
       "aliases": [
         "b3c022ad"
       ]
+    },
+    "ef8452cf": {
+      "sig": "EP(3,4223,INPUT)",
+      "nClass": "eg",
+      "sts": 20676,
+      "aliases": [
+        "9c22ed27"
+      ]
     }
   }
 }
