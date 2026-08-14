@@ -2032,6 +2032,14 @@
       "aliases": [
         "cc740105"
       ]
+    },
+    "3d1aff5b": {
+      "sig": "JS(26,4464,INPUT)",
+      "nClass": "iu",
+      "sts": 20679,
+      "aliases": [
+        "5ea20417"
+      ]
     }
   }
 }
