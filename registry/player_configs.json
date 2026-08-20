@@ -2233,6 +2233,14 @@
         "65088fcb"
       ]
     },
+    "6b6cf88b": {
+      "sig": "bf(26,3030,INPUT)",
+      "nClass": "IV",
+      "sts": 20684,
+      "aliases": [
+        "1a4e7d98"
+      ]
+    },
     "81d49828": {
       "sig": "bf(26,3030,INPUT)",
       "nClass": "IV",
