@@ -2209,6 +2209,14 @@
         "32130766"
       ]
     },
+    "1a8bfffc": {
+      "sig": "bf(26,3030,INPUT)",
+      "nClass": "IV",
+      "sts": 20684,
+      "aliases": [
+        "0a48cb41"
+      ]
+    },
     "3810daca": {
       "sig": "bf(26,3030,INPUT)",
       "nClass": "IV",
