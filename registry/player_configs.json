@@ -2232,6 +2232,14 @@
       "aliases": [
         "901aff8b"
       ]
+    },
+    "f2bf260e": {
+      "sig": "bf(26,3030,INPUT)",
+      "nClass": "IV",
+      "sts": 20684,
+      "aliases": [
+        "8be4b3e3"
+      ]
     }
   }
 }
