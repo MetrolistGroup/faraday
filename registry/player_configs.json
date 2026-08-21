@@ -2320,6 +2320,14 @@
       "aliases": [
         "1a6be97c"
       ]
+    },
+    "8e85ef3a": {
+      "sig": "oZ(7,120,INPUT)",
+      "nClass": "J8",
+      "sts": 20686,
+      "aliases": [
+        "671f23bf"
+      ]
     }
   }
 }
