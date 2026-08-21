@@ -2312,6 +2312,14 @@
       "aliases": [
         "5268348a"
       ]
+    },
+    "6d24ef68": {
+      "sig": "oZ(7,120,INPUT)",
+      "nClass": "J8",
+      "sts": 20686,
+      "aliases": [
+        "1a6be97c"
+      ]
     }
   }
 }
