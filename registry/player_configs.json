@@ -2336,6 +2336,14 @@
       "aliases": [
         "671f23bf"
       ]
+    },
+    "b45afdfa": {
+      "sig": "jq(7,120,INPUT)",
+      "nClass": "GQ",
+      "sts": 20686,
+      "aliases": [
+        "8becc6ed"
+      ]
     }
   }
 }
