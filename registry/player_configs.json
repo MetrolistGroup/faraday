@@ -2344,6 +2344,14 @@
       "aliases": [
         "8becc6ed"
       ]
+    },
+    "70538c05": {
+      "sig": "OD(29,1021,INPUT)",
+      "nClass": "Bq",
+      "sts": 20688,
+      "aliases": [
+        "c8f77689"
+      ]
     }
   }
 }
