@@ -2369,6 +2369,14 @@
         "635da7a4"
       ]
     },
+    "6a0e84d6": {
+      "sig": "Ik(3,8128,INPUT)",
+      "nClass": "sP",
+      "sts": 20689,
+      "aliases": [
+        "bcaaa007"
+      ]
+    },
     "92e0100d": {
       "sig": "RC(3,8128,INPUT)",
       "nClass": "q4",
