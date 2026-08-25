@@ -2384,6 +2384,14 @@
       "aliases": [
         "f0900aaa"
       ]
+    },
+    "b1e9a19c": {
+      "sig": "Ik(3,8128,INPUT)",
+      "nClass": "sP",
+      "sts": 20689,
+      "aliases": [
+        "fffb9364"
+      ]
     }
   }
 }
