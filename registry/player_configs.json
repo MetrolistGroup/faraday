@@ -2464,6 +2464,14 @@
       "aliases": [
         "5b955eaa"
       ]
+    },
+    "fc043c93": {
+      "sig": "xD(28,4062,INPUT)",
+      "nClass": "n7",
+      "sts": 20690,
+      "aliases": [
+        "560ac8b1"
+      ]
     }
   }
 }
