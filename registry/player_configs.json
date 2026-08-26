@@ -2417,6 +2417,14 @@
         "fffb9364"
       ]
     },
+    "0a500c3a": {
+      "sig": "a3(28,4062,INPUT)",
+      "nClass": "Ff",
+      "sts": 20690,
+      "aliases": [
+        "a7f04134"
+      ]
+    },
     "bd4a2521": {
       "sig": "a3(28,4062,INPUT)",
       "nClass": "Ff",
