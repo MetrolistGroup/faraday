@@ -2505,6 +2505,14 @@
         "1bd73203"
       ]
     },
+    "c90e7b12": {
+      "sig": "GC(1,8309,INPUT)",
+      "nClass": "zk",
+      "sts": 20691,
+      "aliases": [
+        "b92bea09"
+      ]
+    },
     "d01789b5": {
       "sig": "tq(1,8309,INPUT)",
       "nClass": "Y_",
