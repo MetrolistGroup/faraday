@@ -2560,6 +2560,14 @@
       "aliases": [
         "eddbb7c6"
       ]
+    },
+    "aad252b0": {
+      "sig": "hg(12,7031,INPUT)",
+      "nClass": "md",
+      "sts": 20692,
+      "aliases": [
+        "58df689c"
+      ]
     }
   }
 }
