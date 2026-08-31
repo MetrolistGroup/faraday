@@ -2576,6 +2576,14 @@
       "aliases": [
         "6df701fb"
       ]
+    },
+    "6567edc1": {
+      "sig": "oP(47,1312,INPUT)",
+      "nClass": "MK",
+      "sts": 20693,
+      "aliases": [
+        "a79e0401"
+      ]
     }
   }
 }
