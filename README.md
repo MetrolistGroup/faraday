@@ -7,10 +7,12 @@ updates the registry automatically.
 ## Used by
 
 - Metrolist KMP (WIP)
+- Metrolist
+- InnerTubeX and all projects using it
 
 ## Acknowledgments
 
-- [zemer-cipher](https://github.com/ZemerTeam/zemer-cipher) — config schema and
+- [zemer-cipher](https://github.com/ZemerTeam/zemer-cipher) - config schema and
   parser rules
-- [zemer-app](https://github.com/ZemerTeam/zemer-app) — deriver and HTTP 206
+- [zemer-app](https://github.com/ZemerTeam/zemer-app) - deriver and HTTP 206
   validator patterns
