@@ -1,6 +1,14 @@
 {
   "schemaVersion": 1,
   "players": {
+    "10733253": {
+      "sig": "dS(7,2166,INPUT)",
+      "nClass": "np",
+      "sts": 20699,
+      "aliases": [
+        "27a3833a"
+      ]
+    },
     "13792696": {
       "sig": "ST(1,8150,INPUT)",
       "nClass": "oO",
