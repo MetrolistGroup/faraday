@@ -2689,6 +2689,14 @@
         "91e673b7"
       ]
     },
+    "a52cf1ce": {
+      "sig": "mp(7,2166,INPUT)",
+      "nClass": "Ou",
+      "sts": 20699,
+      "aliases": [
+        "3f877f13"
+      ]
+    },
     "ce167ec0": {
       "sig": "dS(7,2166,INPUT)",
       "nClass": "np",
