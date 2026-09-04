@@ -2681,6 +2681,14 @@
         "c859a220"
       ]
     },
+    "3e7a0d91": {
+      "sig": "mp(7,2166,INPUT)",
+      "nClass": "Ou",
+      "sts": 20699,
+      "aliases": [
+        "91e673b7"
+      ]
+    },
     "ce167ec0": {
       "sig": "dS(7,2166,INPUT)",
       "nClass": "np",
