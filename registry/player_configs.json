@@ -2792,6 +2792,14 @@
       "aliases": [
         "27790ec9"
       ]
+    },
+    "c7aa6833": {
+      "sig": "No(24,6806,INPUT)",
+      "nClass": "Nm",
+      "sts": 20704,
+      "aliases": [
+        "050ea2e3"
+      ]
     }
   }
 }
