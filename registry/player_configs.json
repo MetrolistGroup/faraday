@@ -2992,6 +2992,14 @@
       "aliases": [
         "32477a05"
       ]
+    },
+    "d7ddd053": {
+      "sig": "qy(12,4884,INPUT)",
+      "nClass": "eg",
+      "sts": 20713,
+      "aliases": [
+        "c88074fc"
+      ]
     }
   }
 }
