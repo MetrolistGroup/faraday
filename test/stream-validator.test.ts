@@ -139,6 +139,38 @@ Deno.test("candidate validation retries transient CDN failures once", async () =
   }
 });
 
+Deno.test("CDN retry gets more time than the initial stream request", async () => {
+  const originalFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = ((_input, init) => {
+    requests++;
+    if (requests === 1) return Promise.reject(new Error("network blip"));
+    if (requests !== 2) return Promise.resolve(cdnResponse(206));
+    return new Promise<Response>((resolve, reject) => {
+      const timer = setTimeout(() => resolve(cdnResponse(206)), 30);
+      init?.signal?.addEventListener("abort", () => {
+        clearTimeout(timer);
+        reject(new Error("aborted"));
+      }, { once: true });
+    });
+  }) as typeof fetch;
+  try {
+    const result = await validateCandidatePairs(
+      syntheticPlayer(),
+      "aaaa1111",
+      "bbbb2222",
+      1,
+      [signatureCipher("abc"), signatureCipher("def")],
+      [{ sig: "S(1,2,INPUT)", nClass: "X" }],
+      { timeoutMs: 5, runtimeTimeoutMs: 5000 },
+    );
+    assertEquals(result.winner?.playerHash, "aaaa1111");
+    assertEquals(requests, 3);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 Deno.test("candidate validation enforces its pair cap", async () => {
   await assertRejects(() =>
     validateCandidatePairs(

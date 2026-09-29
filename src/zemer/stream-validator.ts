@@ -456,7 +456,12 @@ export async function validateCandidatePairs(
             url,
             "bytes=0-262143",
             Math.min(
-              options.timeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS,
+              probeAttempt === 0
+                ? options.timeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
+                : Math.max(
+                  options.timeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS,
+                  15_000,
+                ),
               fetchRemaining,
             ),
           );
