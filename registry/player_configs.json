@@ -3313,6 +3313,14 @@
         "e348eab6"
       ]
     },
+    "c92cd8d2": {
+      "sig": "rF(11,3932,INPUT)",
+      "nClass": "Ok",
+      "sts": 20724,
+      "aliases": [
+        "2efa6f58"
+      ]
+    },
     "d9d7a37f": {
       "sig": "T5(11,3932,INPUT)",
       "nClass": "bt",
