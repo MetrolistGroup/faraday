@@ -3461,6 +3461,14 @@
         "3dc7ccf6"
       ]
     },
+    "2373b006": {
+      "sig": "rb(2,3435,INPUT)",
+      "nClass": "bo",
+      "sts": 20732,
+      "aliases": [
+        "b2d6f01c"
+      ]
+    },
     "a5b84ee3": {
       "sig": "DV(2,3435,INPUT)",
       "nClass": "YS",
