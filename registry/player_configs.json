@@ -3578,6 +3578,14 @@
         "6718331f"
       ]
     },
+    "226b9b94": {
+      "sig": "RG(5,5449,INPUT)",
+      "nClass": "xa",
+      "sts": 20738,
+      "aliases": [
+        "d1e6e263"
+      ]
+    },
     "5cdc404f": {
       "sig": "nD(5,5449,INPUT)",
       "nClass": "Di",
