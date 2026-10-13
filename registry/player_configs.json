@@ -3587,6 +3587,14 @@
         "21090930"
       ]
     },
+    "4db0dd7d": {
+      "sig": "Ya(5,5449,INPUT)",
+      "nClass": "Pb",
+      "sts": 20738,
+      "aliases": [
+        "e5b5c44d"
+      ]
+    },
     "5cdc404f": {
       "sig": "nD(5,5449,INPUT)",
       "nClass": "Di",
