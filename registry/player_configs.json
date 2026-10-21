@@ -3770,6 +3770,14 @@
         "80e27fce",
         "cbcfbf2f"
       ]
+    },
+    "96be8342": {
+      "sig": "Ka(17,1452,INPUT)",
+      "nClass": "Ja",
+      "sts": 20746,
+      "aliases": [
+        "a7dc8dd0"
+      ]
     }
   }
 }
