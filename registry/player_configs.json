@@ -3820,6 +3820,14 @@
         "386a813f"
       ]
     },
+    "03f27def": {
+      "sig": "$H(5,6005,INPUT)",
+      "nClass": "Jd",
+      "sts": 20752,
+      "aliases": [
+        "45be2673"
+      ]
+    },
     "649a7c3e": {
       "sig": "Yf(5,6005,INPUT)",
       "nClass": "Gz",
