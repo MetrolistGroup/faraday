@@ -3837,6 +3837,14 @@
         "5f5fec83"
       ]
     },
+    "6555c59e": {
+      "sig": "Ok(5,6005,INPUT)",
+      "nClass": "Nx",
+      "sts": 20752,
+      "aliases": [
+        "f8b08a10"
+      ]
+    },
     "f312a968": {
       "sig": "ks(5,6005,INPUT)",
       "nClass": "zD",
