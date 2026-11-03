@@ -4017,6 +4017,14 @@
         "40cb3334",
         "d1e7acbd"
       ]
+    },
+    "d8a33f35": {
+      "sig": "hs(18,2147,INPUT)",
+      "nClass": "yn",
+      "sts": 20760,
+      "aliases": [
+        "f1cf8a93"
+      ]
     }
   }
 }
