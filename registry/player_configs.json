@@ -4018,6 +4018,14 @@
         "d1e7acbd"
       ]
     },
+    "d07d6ece": {
+      "sig": "gm(18,2147,INPUT)",
+      "nClass": "ch",
+      "sts": 20760,
+      "aliases": [
+        "05ac6f6c"
+      ]
+    },
     "d8a33f35": {
       "sig": "hs(18,2147,INPUT)",
       "nClass": "yn",
