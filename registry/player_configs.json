@@ -4026,6 +4026,14 @@
         "650555cd"
       ]
     },
+    "cd64615e": {
+      "sig": "df(18,2147,INPUT)",
+      "nClass": "sf",
+      "sts": 20760,
+      "aliases": [
+        "03e131b1"
+      ]
+    },
     "d07d6ece": {
       "sig": "gm(18,2147,INPUT)",
       "nClass": "ch",
