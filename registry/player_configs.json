@@ -4083,6 +4083,14 @@
       "aliases": [
         "f8726fb0"
       ]
+    },
+    "7973adf3": {
+      "sig": "Hz(11,6439,INPUT)",
+      "nClass": "KJ",
+      "sts": 20763,
+      "aliases": [
+        "204d29b0"
+      ]
     }
   }
 }
