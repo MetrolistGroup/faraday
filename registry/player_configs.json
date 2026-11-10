@@ -4099,6 +4099,14 @@
         "f70de3b8",
         "2e891bcc"
       ]
+    },
+    "6918dea5": {
+      "sig": "KH(15,3588,INPUT)",
+      "nClass": "Rl",
+      "sts": 20766,
+      "aliases": [
+        "3a55ac2c"
+      ]
     }
   }
 }
