@@ -4219,6 +4219,14 @@
       "aliases": [
         "0e95f632"
       ]
+    },
+    "9b8de133": {
+      "sig": "Ro(5,5087,INPUT)",
+      "nClass": "Wg",
+      "sts": 20770,
+      "aliases": [
+        "f0bff6bd"
+      ]
     }
   }
 }
