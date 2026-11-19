@@ -4333,6 +4333,14 @@
         "141159e5"
       ]
     },
+    "5ba500a8": {
+      "sig": "Hp(2,1724,INPUT)",
+      "nClass": "Cp",
+      "sts": 20775,
+      "aliases": [
+        "1c0134a8"
+      ]
+    },
     "7425d04e": {
       "sig": "wc(2,1724,INPUT)",
       "nClass": "uc",
