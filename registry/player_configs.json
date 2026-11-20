@@ -4383,6 +4383,14 @@
       "aliases": [
         "e10989d8"
       ]
+    },
+    "cb7ffe6d": {
+      "sig": "Kk(49,8822,INPUT)",
+      "nClass": "Fh",
+      "sts": 20776,
+      "aliases": [
+        "442da4f7"
+      ]
     }
   }
 }
