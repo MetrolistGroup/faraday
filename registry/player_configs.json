@@ -4426,6 +4426,14 @@
         "07d83cab"
       ]
     },
+    "05a4ffc0": {
+      "sig": "JKa(2,7910,INPUT)",
+      "nClass": "BB",
+      "sts": 20779,
+      "aliases": [
+        "4eda39fe"
+      ]
+    },
     "b485e332": {
       "sig": "Yo(2,7910,INPUT)",
       "nClass": "Xo",
