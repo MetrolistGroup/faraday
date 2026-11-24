@@ -14,17 +14,7 @@ Deno.test("authenticated cipher fetch is preferred when credentials exist", asyn
   const requests: RequestInit[] = [];
   globalThis.fetch = ((_input, init) => {
     requests.push(init ?? {});
-    return Promise.resolve(
-      new Response(JSON.stringify({
-        playabilityStatus: { status: "OK" },
-        streamingData: {
-          adaptiveFormats: [{
-            mimeType: "audio/webm",
-            signatureCipher: signatureCipher("abc"),
-          }],
-        },
-      })),
-    );
+    return Promise.resolve(playerResponse());
   }) as typeof fetch;
   const cred: InnertubeCred = {
     cookie: "SAPISID=test-secret",
@@ -45,6 +35,149 @@ Deno.test("authenticated cipher fetch is preferred when credentials exist", asyn
       new Headers(requests[0]?.headers).get("cookie"),
       cred.cookie,
     );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("cipher fetch retries a temporary unplayable response in the same mode", async () => {
+  const originalFetch = globalThis.fetch;
+  const requests: RequestInit[] = [];
+  globalThis.fetch = ((_input, init) => {
+    requests.push(init ?? {});
+    return Promise.resolve(
+      requests.length === 1
+        ? new Response(JSON.stringify({
+          playabilityStatus: {
+            status: "UNPLAYABLE",
+            reason: "Video unavailable",
+          },
+        }))
+        : playerResponse(),
+    );
+  }) as typeof fetch;
+  const cred: InnertubeCred = {
+    cookie: "SAPISID=test-secret",
+    visitorData: "visitor-data",
+    dataSyncId: "",
+    source: "test",
+  };
+  try {
+    assertEquals(
+      await fetchSignatureCipher(20780, {
+        videoId: "dQw4w9WgXcQ",
+        cred,
+        preferAuth: true,
+      }),
+      { cipher: signatureCipher("abc"), mode: "authenticated" },
+    );
+    assertEquals(requests.length, 2);
+    assertEquals(
+      requests.map((request) => new Headers(request.headers).get("cookie")),
+      [cred.cookie, cred.cookie],
+    );
+    assertEquals(
+      requests.map((request) => JSON.parse(String(request.body)).videoId),
+      ["dQw4w9WgXcQ", "dQw4w9WgXcQ"],
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("cipher retry gets more time after a stalled player response body", async () => {
+  const originalFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = ((_input, init) => {
+    requests++;
+    if (requests === 1) {
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          init?.signal?.addEventListener("abort", () => {
+            controller.error(new DOMException("aborted", "AbortError"));
+          }, { once: true });
+        },
+      });
+      return Promise.resolve(new Response(body));
+    }
+    return new Promise<Response>((resolve, reject) => {
+      const timer = setTimeout(() => resolve(playerResponse()), 30);
+      init?.signal?.addEventListener("abort", () => {
+        clearTimeout(timer);
+        reject(new DOMException("aborted", "AbortError"));
+      }, { once: true });
+    });
+  }) as typeof fetch;
+  try {
+    assertEquals(
+      await fetchSignatureCipher(20780, {
+        videoId: "dQw4w9WgXcQ",
+        timeoutMs: 5,
+      }),
+      { cipher: signatureCipher("abc"), mode: "guest" },
+    );
+    assertEquals(requests, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("cipher fetch falls back to guest after authenticated retries fail", async () => {
+  const originalFetch = globalThis.fetch;
+  const cookies: Array<string | null> = [];
+  globalThis.fetch = ((_input, init) => {
+    const cookie = new Headers(init?.headers).get("cookie");
+    cookies.push(cookie);
+    return Promise.resolve(
+      cookie
+        ? new Response(JSON.stringify({
+          playabilityStatus: { status: "LOGIN_REQUIRED" },
+        }))
+        : playerResponse(),
+    );
+  }) as typeof fetch;
+  const cred: InnertubeCred = {
+    cookie: "SAPISID=test-secret",
+    visitorData: "visitor-data",
+    dataSyncId: "",
+    source: "test",
+  };
+  try {
+    const result = await fetchSignatureCipher(20780, {
+      videoId: "dQw4w9WgXcQ",
+      cred,
+      preferAuth: true,
+    });
+    assertEquals(result.mode, "guest");
+    assertEquals(cookies, [cred.cookie, cred.cookie, null]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("persistent cipher fetch failures stay bounded and identify the video", async () => {
+  const originalFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = (() => {
+    requests++;
+    return Promise.resolve(
+      new Response(JSON.stringify({
+        playabilityStatus: {
+          status: "UNPLAYABLE",
+          reason: "Video unavailable",
+        },
+      })),
+    );
+  }) as typeof fetch;
+  try {
+    const error = await assertRejects(
+      () => fetchSignatureCipher(20780, { videoId: "9bZkp7q19f0" }),
+      Error,
+      "could not fetch signatureCipher for 9bZkp7q19f0",
+    );
+    assertEquals(requests, 2);
+    assertEquals(error.message.includes("UNPLAYABLE Video unavailable"), true);
+    assertEquals(error.message.includes("YT_COOKIE is not configured"), true);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -83,7 +216,11 @@ Deno.test("player response timeout remains active while reading the body", async
     return Promise.resolve(new Response(body));
   }) as typeof fetch;
   try {
-    await assertRejects(() => fetchSignatureCipherGuest(1, "dQw4w9WgXcQ", 20));
+    await assertRejects(
+      () => fetchSignatureCipherGuest(1, "dQw4w9WgXcQ", 20),
+      Error,
+      "player request timed out after 20 ms",
+    );
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -197,6 +334,18 @@ function cdnResponse(status: number): Response {
   });
   Object.defineProperty(response, "url", { value: CDN_URL });
   return response;
+}
+
+function playerResponse(): Response {
+  return new Response(JSON.stringify({
+    playabilityStatus: { status: "OK" },
+    streamingData: {
+      adaptiveFormats: [{
+        mimeType: "audio/webm",
+        signatureCipher: signatureCipher("abc"),
+      }],
+    },
+  }));
 }
 
 function signatureCipher(signature: string): string {

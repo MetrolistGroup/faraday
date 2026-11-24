@@ -17,6 +17,7 @@ const WEB_REMIX = {
   clientId: "67",
 };
 const DEFAULT_FETCH_TIMEOUT_MS = 5000;
+const RETRY_FETCH_TIMEOUT_MS = 15_000;
 const DEFAULT_RUNTIME_TIMEOUT_MS = 15_000;
 const DEFAULT_VALIDATION_DEADLINE_MS = 120_000;
 const MAX_CANDIDATE_PAIRS = 24;
@@ -271,27 +272,24 @@ export async function fetchSignatureCipher(
 
   const errors: string[] = [];
   for (const mode of order) {
-    if (mode === "authenticated") {
-      if (!cred?.cookie) continue;
+    if (mode === "authenticated" && !cred?.cookie) continue;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const requestTimeoutMs = attempt === 0
+        ? timeoutMs
+        : Math.max(timeoutMs, RETRY_FETCH_TIMEOUT_MS);
       try {
-        const cipher = await fetchSignatureCipherAuthenticated(
-          sts,
-          cred,
-          videoId,
-          timeoutMs,
-        );
+        const cipher = mode === "authenticated"
+          ? await fetchSignatureCipherAuthenticated(
+            sts,
+            cred!,
+            videoId,
+            requestTimeoutMs,
+          )
+          : await fetchSignatureCipherGuest(sts, videoId, requestTimeoutMs);
         return { cipher, mode };
       } catch (error) {
-        errors.push(`${mode}: ${errorMessage(error)}`);
+        if (attempt === 1) errors.push(`${mode}: ${errorMessage(error)}`);
       }
-      continue;
-    }
-
-    try {
-      const cipher = await fetchSignatureCipherGuest(sts, videoId, timeoutMs);
-      return { cipher, mode };
-    } catch (error) {
-      errors.push(`${mode}: ${errorMessage(error)}`);
     }
   }
 
@@ -299,7 +297,7 @@ export async function fetchSignatureCipher(
     errors.push("authenticated: unavailable (YT_COOKIE is not configured)");
   }
   throw new Error(
-    `could not fetch signatureCipher${
+    `could not fetch signatureCipher for ${videoId}${
       errors.length ? ` (${errors.join("; ")})` : ""
     }`,
   );
@@ -460,7 +458,7 @@ export async function validateCandidatePairs(
                 ? options.timeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
                 : Math.max(
                   options.timeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS,
-                  15_000,
+                  RETRY_FETCH_TIMEOUT_MS,
                 ),
               fetchRemaining,
             ),
@@ -537,6 +535,11 @@ async function fetchTextWithTimeout(
     const response = await fetch(input, { ...init, signal: controller.signal });
     const text = await response.text();
     return { response, text };
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`player request timed out after ${timeoutMs} ms`);
+    }
+    throw error;
   } finally {
     clearTimeout(timeout);
   }
