@@ -4442,6 +4442,14 @@
         "fe40e19e"
       ]
     },
+    "2e38c6fe": {
+      "sig": "Wq(18,7746,INPUT)",
+      "nClass": "Lq",
+      "sts": 20780,
+      "aliases": [
+        "36be8478"
+      ]
+    },
     "92eef845": {
       "sig": "RA(18,7746,INPUT)",
       "nClass": "ed",
