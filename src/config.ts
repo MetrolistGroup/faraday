@@ -19,7 +19,7 @@ function numberFromEnv(name: string, fallback: number): number {
 export function loadConfig(): Config {
   const warmupVideoId = Deno.env.get("WARMUP_VIDEO_ID") ?? "dQw4w9WgXcQ";
   const validationVideoIds = listFromEnv("VALIDATION_VIDEO_IDS") ??
-    [warmupVideoId, "9bZkp7q19f0"];
+    [warmupVideoId, "9bZkp7q19f0", "IgxYypxZDTQ", "kJQP7kiw5Fk"];
   const uniqueValidationVideoIds = [...new Set(validationVideoIds)];
   if (
     uniqueValidationVideoIds.length < 2 ||

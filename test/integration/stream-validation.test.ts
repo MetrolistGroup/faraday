@@ -3,15 +3,17 @@ import { loadConfig } from "../../src/config.ts";
 import { loadPlayerSource } from "../../src/player-source.ts";
 import {
   fetchSignatureCipherGuest,
+  fetchValidationCiphers,
+  loadCredForValidation,
   probePlayerStream,
   validateCandidatePairs,
 } from "../../src/zemer/stream-validator.ts";
 
-const KNOWN_HASH = "66a6ea83";
-const KNOWN_STS = 20640;
-const CORRECT = { sig: "C3(15,933,INPUT)", nClass: "WM" };
-const WRONG_SIG = { sig: "Tl(48,5831,INPUT)", nClass: "W_" };
-const WRONG_DISPATCH = { sig: "C3(0,0,INPUT)", nClass: "WM" };
+const KNOWN_HASH = "ffd0c196";
+const KNOWN_STS = 20780;
+const CORRECT = { sig: "dn(18,7746,INPUT)", nClass: "Bp" };
+const WRONG_SIG = { sig: "dn(18,7745,INPUT)", nClass: "Bp" };
+const WRONG_DISPATCH = { sig: "dn(0,0,INPUT)", nClass: "Bp" };
 
 Deno.test("player API: malformed requests do not mirror a proper sts response", async () => {
   const videoId = "dQw4w9WgXcQ";
@@ -56,10 +58,11 @@ Deno.test("stream validation: only the correct sig/n pair passes HTTP 206", asyn
   });
   assertEquals(source.playerHash, KNOWN_HASH);
 
-  const signatureCiphers = await Promise.all(
-    config.validationVideoIds.map((videoId) =>
-      fetchSignatureCipherGuest(KNOWN_STS, videoId)
-    ),
+  const cred = await loadCredForValidation();
+  const { ciphers: signatureCiphers } = await fetchValidationCiphers(
+    KNOWN_STS,
+    config.validationVideoIds,
+    { cred, preferAuth: !!cred.cookie, timeoutMs: config.fetchTimeoutMs },
   );
   const signatures = signatureCiphers.map((cipher) =>
     new URLSearchParams(cipher).get("s")
@@ -70,7 +73,7 @@ Deno.test("stream validation: only the correct sig/n pair passes HTTP 206", asyn
   const good = await validateCandidatePairs(
     source.playerCode,
     KNOWN_HASH,
-    "2afc9693",
+    "32befa38",
     KNOWN_STS,
     signatureCiphers,
     [CORRECT],
@@ -78,7 +81,7 @@ Deno.test("stream validation: only the correct sig/n pair passes HTTP 206", asyn
   const wrongSig = await validateCandidatePairs(
     source.playerCode,
     KNOWN_HASH,
-    "2afc9693",
+    "32befa38",
     KNOWN_STS,
     signatureCiphers,
     [WRONG_SIG],
@@ -86,7 +89,7 @@ Deno.test("stream validation: only the correct sig/n pair passes HTTP 206", asyn
   const wrongDispatch = await validateCandidatePairs(
     source.playerCode,
     KNOWN_HASH,
-    "2afc9693",
+    "32befa38",
     KNOWN_STS,
     signatureCiphers,
     [WRONG_DISPATCH],
@@ -126,7 +129,7 @@ Deno.test("stream validation: cipher from wrong sts does not validate with corre
   const withGoodCipher = await validateCandidatePairs(
     source.playerCode,
     KNOWN_HASH,
-    "2afc9693",
+    "32befa38",
     KNOWN_STS,
     goodCipher,
     [CORRECT],
@@ -134,7 +137,7 @@ Deno.test("stream validation: cipher from wrong sts does not validate with corre
   const withWrongCipher = await validateCandidatePairs(
     source.playerCode,
     KNOWN_HASH,
-    "2afc9693",
+    "32befa38",
     KNOWN_STS,
     wrongCipher,
     [CORRECT],

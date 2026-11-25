@@ -18,6 +18,7 @@ const WEB_REMIX = {
 };
 const DEFAULT_FETCH_TIMEOUT_MS = 5000;
 const RETRY_FETCH_TIMEOUT_MS = 15_000;
+const RETRY_DELAY_MS = 1000;
 const DEFAULT_RUNTIME_TIMEOUT_MS = 15_000;
 const DEFAULT_VALIDATION_DEADLINE_MS = 120_000;
 const MAX_CANDIDATE_PAIRS = 24;
@@ -28,6 +29,12 @@ export type SignatureCipherMode = "guest" | "authenticated";
 export type SignatureCipherResult = {
   cipher: string;
   mode: SignatureCipherMode;
+};
+
+type CipherFetchOptions = {
+  cred?: InnertubeCred | null;
+  preferAuth?: boolean;
+  timeoutMs?: number;
 };
 
 export type ValidationAttempt = {
@@ -254,12 +261,7 @@ export async function fetchSignatureCipherAuthenticated(
 
 export async function fetchSignatureCipher(
   sts: number,
-  options: {
-    videoId?: string;
-    cred?: InnertubeCred | null;
-    preferAuth?: boolean;
-    timeoutMs?: number;
-  } = {},
+  options: CipherFetchOptions & { videoId?: string } = {},
 ): Promise<SignatureCipherResult> {
   const videoId = options.videoId ??
     Deno.env.get("WARMUP_VIDEO_ID") ??
@@ -274,6 +276,9 @@ export async function fetchSignatureCipher(
   for (const mode of order) {
     if (mode === "authenticated" && !cred?.cookie) continue;
     for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) {
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+      }
       const requestTimeoutMs = attempt === 0
         ? timeoutMs
         : Math.max(timeoutMs, RETRY_FETCH_TIMEOUT_MS);
@@ -300,6 +305,55 @@ export async function fetchSignatureCipher(
     `could not fetch signatureCipher for ${videoId}${
       errors.length ? ` (${errors.join("; ")})` : ""
     }`,
+  );
+}
+
+export async function fetchValidationCiphers(
+  sts: number,
+  videoIds: string[],
+  options: CipherFetchOptions = {},
+): Promise<{ ciphers: string[]; mode: SignatureCipherMode }> {
+  const videos = [...new Set(videoIds)];
+  if (
+    videos.length < 2 ||
+    videos.some((id) => !/^[A-Za-z0-9_-]{11}$/.test(id))
+  ) {
+    throw new Error(
+      "validation requires at least two distinct YouTube video IDs",
+    );
+  }
+
+  const ciphers: string[] = [];
+  const signatures = new Set<string>();
+  const modes: SignatureCipherMode[] = [];
+  const errors: string[] = [];
+  for (const videoId of videos) {
+    try {
+      const result = await fetchSignatureCipher(sts, { ...options, videoId });
+      const signature = new URLSearchParams(result.cipher).get("s");
+      if (!signature || signatures.has(signature)) {
+        throw new Error("player response did not provide a distinct signature");
+      }
+      ciphers.push(result.cipher);
+      signatures.add(signature);
+      modes.push(result.mode);
+      if (ciphers.length === 2) {
+        return {
+          ciphers,
+          mode: modes.includes("authenticated") ? "authenticated" : "guest",
+        };
+      }
+    } catch (error) {
+      const message = `${videoId}: ${errorMessage(error)}`;
+      errors.push(message);
+      console.warn(`Skipping validation video ${message}`);
+    }
+  }
+
+  throw new Error(
+    `could not fetch two distinct validation ciphers (got ${ciphers.length}; ${
+      errors.join("; ")
+    })`,
   );
 }
 

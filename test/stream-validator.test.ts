@@ -3,6 +3,7 @@ import type { InnertubeCred } from "../src/innertube-cred.ts";
 import {
   fetchSignatureCipher,
   fetchSignatureCipherGuest,
+  fetchValidationCiphers,
   probeCdnStream,
   validateCandidatePairs,
 } from "../src/zemer/stream-validator.ts";
@@ -183,6 +184,142 @@ Deno.test("persistent cipher fetch failures stay bounded and identify the video"
   }
 });
 
+Deno.test("validation replaces unavailable videos and HTTP 403 responses with backups", async () => {
+  const originalFetch = globalThis.fetch;
+  const videos = ["dQw4w9WgXcQ", "9bZkp7q19f0", "IgxYypxZDTQ", "kJQP7kiw5Fk"];
+  const requestedVideos: string[] = [];
+  globalThis.fetch = ((_input, init) => {
+    const videoId = JSON.parse(String(init?.body)).videoId;
+    requestedVideos.push(videoId);
+    return Promise.resolve(
+      videoId === videos[0]
+        ? new Response(JSON.stringify({
+          playabilityStatus: {
+            status: "UNPLAYABLE",
+            reason: "Video unavailable",
+          },
+        }))
+        : videoId === videos[1]
+        ? new Response("Forbidden", { status: 403 })
+        : playerResponse(videoId),
+    );
+  }) as typeof fetch;
+  try {
+    const result = await fetchValidationCiphers(20780, videos);
+    assertEquals(result, {
+      ciphers: videos.slice(2).map(signatureCipher),
+      mode: "guest",
+    });
+    assertEquals(requestedVideos, [
+      videos[0],
+      videos[0],
+      videos[1],
+      videos[1],
+      videos[2],
+      videos[3],
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("validation uses two distinct videos and stops before unused backups", async () => {
+  const originalFetch = globalThis.fetch;
+  const requestedVideos: string[] = [];
+  globalThis.fetch = ((_input, init) => {
+    const videoId = JSON.parse(String(init?.body)).videoId;
+    requestedVideos.push(videoId);
+    return Promise.resolve(playerResponse(videoId));
+  }) as typeof fetch;
+  try {
+    const videos = ["dQw4w9WgXcQ", "9bZkp7q19f0"];
+    const result = await fetchValidationCiphers(20780, [
+      videos[0],
+      videos[0],
+      videos[1],
+      "IgxYypxZDTQ",
+    ]);
+    assertEquals(result.ciphers, videos.map(signatureCipher));
+    assertEquals(requestedVideos, videos);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("validation rejects duplicate signatures and missing signatures", async () => {
+  const originalFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = (() => {
+    const signature = ["abc", "abc", "", "def"][requests++];
+    return Promise.resolve(playerResponse(signature));
+  }) as typeof fetch;
+  try {
+    const result = await fetchValidationCiphers(20780, [
+      "dQw4w9WgXcQ",
+      "9bZkp7q19f0",
+      "IgxYypxZDTQ",
+      "kJQP7kiw5Fk",
+    ]);
+    assertEquals(result.ciphers, [
+      signatureCipher("abc"),
+      signatureCipher("def"),
+    ]);
+    assertEquals(requests, 4);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("validation fails with diagnostics when fewer than two videos work", async () => {
+  const originalFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = ((_input, init) => {
+    requests++;
+    const videoId = JSON.parse(String(init?.body)).videoId;
+    return Promise.resolve(
+      videoId === "dQw4w9WgXcQ"
+        ? playerResponse(videoId)
+        : new Response("Forbidden", { status: 403 }),
+    );
+  }) as typeof fetch;
+  try {
+    const error = await assertRejects(
+      () => fetchValidationCiphers(20780, ["dQw4w9WgXcQ", "9bZkp7q19f0"]),
+      Error,
+      "could not fetch two distinct validation ciphers (got 1;",
+    );
+    assertEquals(requests, 3);
+    assertEquals(error.message.includes("9bZkp7q19f0"), true);
+    assertEquals(error.message.includes("HTTP 403"), true);
+    assertEquals(error.message.includes("YT_COOKIE is not configured"), true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("validation rejects invalid or duplicate video pools before fetching", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (() => {
+    throw new Error("invalid pools must not make network requests");
+  }) as typeof fetch;
+  try {
+    for (
+      const videos of [
+        ["dQw4w9WgXcQ", "dQw4w9WgXcQ"],
+        ["dQw4w9WgXcQ", "invalid"],
+      ]
+    ) {
+      await assertRejects(
+        () => fetchValidationCiphers(20780, videos),
+        Error,
+        "validation requires at least two distinct YouTube video IDs",
+      );
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 Deno.test("CDN validation requires 206 audio range bytes", async () => {
   const originalFetch = globalThis.fetch;
   try {
@@ -336,13 +473,13 @@ function cdnResponse(status: number): Response {
   return response;
 }
 
-function playerResponse(): Response {
+function playerResponse(signature = "abc"): Response {
   return new Response(JSON.stringify({
     playabilityStatus: { status: "OK" },
     streamingData: {
       adaptiveFormats: [{
         mimeType: "audio/webm",
-        signatureCipher: signatureCipher("abc"),
+        signatureCipher: signatureCipher(signature),
       }],
     },
   }));

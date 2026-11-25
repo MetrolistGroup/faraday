@@ -14,7 +14,7 @@ import {
   readPlayerConfigsFile,
 } from "../src/zemer/player-config-io.ts";
 import {
-  fetchSignatureCipher,
+  fetchValidationCiphers,
   loadCredForValidation,
   validateCandidatePairs,
 } from "../src/zemer/stream-validator.ts";
@@ -61,20 +61,17 @@ console.log(
 let signatureCiphers: string[];
 let streamMode: "guest" | "authenticated";
 try {
-  const ciphers: string[] = [];
-  const modes: Array<"guest" | "authenticated"> = [];
-  for (const videoId of config.validationVideoIds) {
-    const cipherResult = await fetchSignatureCipher(sts, {
-      videoId,
+  const samples = await fetchValidationCiphers(
+    sts,
+    config.validationVideoIds,
+    {
       cred,
       preferAuth: flags["prefer-auth"] === true,
       timeoutMs: config.fetchTimeoutMs,
-    });
-    ciphers.push(cipherResult.cipher);
-    modes.push(cipherResult.mode);
-  }
-  signatureCiphers = ciphers;
-  streamMode = modes.includes("authenticated") ? "authenticated" : "guest";
+    },
+  );
+  signatureCiphers = samples.ciphers;
+  streamMode = samples.mode;
 } catch (error) {
   await reportFailure(
     source.playerHash,

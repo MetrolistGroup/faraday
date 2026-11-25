@@ -3,6 +3,7 @@ import type { Config } from "../src/config.ts";
 import { runPlayerProbe } from "../src/player-probe.ts";
 import { readPlayerRegistry } from "../src/registry.ts";
 import { readPlayerConfigsFile } from "../src/zemer/player-config-io.ts";
+import { derivePlayerConfigFromJs } from "../src/zemer/player-config-deriver.ts";
 
 const HASH = "aaaa1111";
 
@@ -179,6 +180,67 @@ Deno.test("known dominant player repairs a stale current pointer", async () => {
   }
 });
 
+Deno.test("probe validates two streams using a backup when a video is unavailable", async () => {
+  const directory = await Deno.makeTempDir();
+  const config: Config = {
+    fetchTimeoutMs: 1000,
+    maxWatchBytes: 100_000,
+    maxPlayerJsBytes: 100_000,
+    warmupVideoId: "dQw4w9WgXcQ",
+    validationVideoIds: ["dQw4w9WgXcQ", "9bZkp7q19f0", "IgxYypxZDTQ"],
+    playerRegistryPath: `${directory}/player-registry.json`,
+    playerConfigsPath: `${directory}/player_configs.json`,
+    extraPlayerHashes: [],
+  };
+  const alias = derivePlayerConfigFromJs(syntheticPlayer(), HASH).md5Alias;
+  await Deno.writeTextFile(
+    config.playerConfigsPath,
+    JSON.stringify({
+      schemaVersion: 1,
+      players: {
+        [alias]: { sig: "S(1,2,INPUT)", nClass: "X", sts: 20002 },
+      },
+    }),
+  );
+
+  const originalFetch = globalThis.fetch;
+  const streams: string[] = [];
+  globalThis.fetch = ((input, init) => {
+    const url = String(input);
+    if (
+      url.includes("/youtubei/v1/player") &&
+      JSON.parse(String(init?.body)).videoId === "9bZkp7q19f0"
+    ) {
+      return Promise.resolve(
+        new Response(JSON.stringify({
+          playabilityStatus: {
+            status: "UNPLAYABLE",
+            reason: "Video unavailable",
+          },
+        })),
+      );
+    }
+    if (url.includes("googlevideo.com/videoplayback")) {
+      streams.push(new URL(url).searchParams.get("sample")!);
+    }
+    return mockFetch(input, init);
+  }) as typeof fetch;
+  try {
+    const result = await runPlayerProbe(config, { playerHash: HASH });
+    assertEquals(result.ok, true, JSON.stringify(result));
+    assertEquals(streams, ["dQw4w9WgXcQ", "IgxYypxZDTQ"]);
+    const file = await readPlayerConfigsFile(config.playerConfigsPath);
+    assertEquals(file.players[alias]?.aliases?.includes(HASH), true);
+    assertEquals(
+      readPlayerRegistry(config.playerRegistryPath)?.current?.playerHash,
+      HASH,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    await Deno.remove(directory, { recursive: true });
+  }
+});
+
 function mockFetch(
   input: string | URL | Request,
   init?: RequestInit,
@@ -191,7 +253,7 @@ function mockFetch(
   }
   if (
     url.includes("/watch?") || url.includes("/embed/") ||
-    url.startsWith("https://music.youtube.com/")
+    url === "https://music.youtube.com/"
   ) {
     return Promise.resolve(
       new Response(
