@@ -4480,6 +4480,14 @@
         "e2bbe1e1"
       ]
     },
+    "f40426d4": {
+      "sig": "od(18,7746,INPUT)",
+      "nClass": "nd",
+      "sts": 20780,
+      "aliases": [
+        "eee87f91"
+      ]
+    },
     "ffd0c196": {
       "sig": "dn(18,7746,INPUT)",
       "nClass": "Bp",
