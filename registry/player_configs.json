@@ -4463,6 +4463,14 @@
         "70d8eb43"
       ]
     },
+    "9244921b": {
+      "sig": "od(18,7746,INPUT)",
+      "nClass": "nd",
+      "sts": 20780,
+      "aliases": [
+        "de68a001"
+      ]
+    },
     "92eef845": {
       "sig": "RA(18,7746,INPUT)",
       "nClass": "ed",
